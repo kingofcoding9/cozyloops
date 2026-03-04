@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cozy Loops by Kayce | Handcrafted Crochet & Knitwear</title>
+    <meta name="description" content="Handcrafted beanies, scarves, and crochet apparel by Kayce. Quality, cozy, and made with love.">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind Config for Custom Brand Colors/Fonts -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#faf6f3',
+                            100: '#f5ebe4',
+                            500: '#d97757',
+                            800: '#5c3826',
+                            900: '#422518',
+                        }
+                    },
+                    fontFamily: {
+                        serif: ['"Playfair Display"', 'serif'],
+                        sans: ['"Inter"', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* Custom Utilities and Transitions */
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Inter', sans-serif; background-color: #faf6f3; color: #422518; }
+        h1, h2, h3, h4, h5, h6, .font-serif { font-family: 'Playfair Display', serif; }
+        
+        .view-section { display: none; animation: fadeIn 0.4s ease-in-out; }
+        .view-section.active { display: block; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Cart Drawer Animation */
+        #cart-drawer { transform: translateX(100%); transition: transform 0.3s ease-in-out; }
+        #cart-drawer.open { transform: translateX(0); }
+        
+        /* Mobile Menu Animation */
+        #mobile-menu { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-in-out; }
+        #mobile-menu.open { max-height: 300px; }
+
+        .product-card:hover .product-img { transform: scale(1.05); }
+        .product-img { transition: transform 0.5s ease; }
+    </style>
+</head>
+<body class="antialiased flex flex-col min-h-screen">
+
+    <!-- Navigation -->
+    <header class="bg-brand-50 border-b border-brand-100 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                
+                <!-- Logo -->
+                <div class="flex-shrink-0 flex items-center cursor-pointer" onclick="navigateTo('home')">
+                    <span class="font-serif italic text-2xl md:text-3xl text-brand-800 font-semibold tracking-tight">Cozy Loops<span class="text-brand-500 text-lg md:text-xl not-italic ml-2">by Kayce</span></span>
+                </div>
+
+                <!-- Desktop Nav -->
+                <nav class="hidden md:flex space-x-8 items-center">
+                    <button onclick="navigateTo('home')" class="nav-link text-brand-800 hover:text-brand-500 font-medium transition-colors border-b-2 border-transparent hover:border-brand-500 pb-1">Home</button>
+                    <button onclick="navigateTo('shop')" class="nav-link text-brand-800 hover:text-brand-500 font-medium transition-colors border-b-2 border-transparent hover:border-brand-500 pb-1">Shop</button>
+                    <button onclick="navigateTo('about')" class="nav-link text-brand-800 hover:text-brand-500 font-medium transition-colors border-b-2 border-transparent hover:border-brand-500 pb-1">About</button>
+                    <button onclick="navigateTo('contact')" class="nav-link text-brand-800 hover:text-brand-500 font-medium transition-colors border-b-2 border-transparent hover:border-brand-500 pb-1">Contact</button>
+                </nav>
+
+                <!-- Icons (Cart & Mobile Menu Toggle) -->
+                <div class="flex items-center space-x-5">
+                    <button onclick="toggleCart()" class="text-brand-800 hover:text-brand-500 relative transition-colors">
+                        <i class="fa-solid fa-bag-shopping text-xl"></i>
+                        <span id="cart-count" class="absolute -top-2 -right-2 bg-brand-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-sm">0</span>
+                    </button>
+                    
+                    <button onclick="toggleMobileMenu()" class="md:hidden text-brand-800 hover:text-brand-500 focus:outline-none">
+                        <i class="fa-solid fa-bars text-2xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Nav -->
+        <div id="mobile-menu" class="md:hidden bg-white border-t border-brand-100 shadow-lg absolute w-full z-30">
+            <div class="px-4 pt-2 pb-4 space-y-1">
+                <button onclick="navigateTo('home'); toggleMobileMenu();" class="block w-full text-left px-3 py-3 text-brand-800 hover:bg-brand-50 font-medium rounded-md">Home</button>
+                <button onclick="navigateTo('shop'); toggleMobileMenu();" class="block w-full text-left px-3 py-3 text-brand-800 hover:bg-brand-50 font-medium rounded-md">Shop</button>
+                <button onclick="navigateTo('about'); toggleMobileMenu();" class="block w-full text-left px-3 py-3 text-brand-800 hover:bg-brand-50 font-medium rounded-md">About</button>
+                <button onclick="navigateTo('contact'); toggleMobileMenu();" class="block w-full text-left px-3 py-3 text-brand-800 hover:bg-brand-50 font-medium rounded-md">Contact</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow flex flex-col">
+        
+        <!-- HOME VIEW -->
+        <section id="view-home" class="view-section active flex-grow">
+            <!-- Hero Section -->
+            <div class="relative bg-brand-800 text-white overflow-hidden">
+                <div class="absolute inset-0">
+                    <img src="https://placehold.co/1920x1080/422518/d97757?text=Cozy+Crochet+Textures" alt="Crochet Background" class="w-full h-full object-cover opacity-40">
+                </div>
+                <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32 lg:py-48 flex flex-col items-center text-center">
+                    <h1 class="font-serif text-4xl md:text-5xl lg:text-7xl mb-6 tracking-wide text-brand-50">Handcrafted Comfort</h1>
+                    <p class="text-lg md:text-xl font-light mb-10 max-w-2xl text-brand-100">Wrap yourself in warmth with bespoke beanies, scarves, and custom crochet apparel made with love and premium yarns.</p>
+                    <button onclick="navigateTo('shop')" class="bg-brand-500 hover:bg-brand-500/90 text-white px-8 py-4 rounded-full font-medium tracking-wide transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1">Shop The Collection</button>
+                </div>
+            </div>
+
+            <!-- Featured Categories (Static representation) -->
+            <div class="py-20 bg-brand-50">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="text-center mb-16">
+                        <h2 class="font-serif text-3xl md:text-4xl text-brand-900 mb-4">Explore by Category</h2>
+                        <div class="w-24 h-1 bg-brand-500 mx-auto"></div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <!-- Category 1 -->
+                        <div class="group relative rounded-xl overflow-hidden cursor-pointer shadow-md" onclick="navigateTo('shop', 'beanies')">
+                            <img src="https://placehold.co/600x800/e5e5e5/5c3826?text=Beanies" alt="Beanies" class="w-full h-96 object-cover transform group-hover:scale-105 transition-transform duration-500">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-8">
+                                <h3 class="font-serif text-3xl text-white mb-2">Beanies</h3>
+                                <p class="text-brand-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300">Shop Now <i class="fa-solid fa-arrow-right ml-2"></i></p>
+                            </div>
+                        </div>
+                        <!-- Category 2 -->
+                        <div class="group relative rounded-xl overflow-hidden cursor-pointer shadow-md" onclick="navigateTo('shop', 'scarves')">
+                            <img src="https://placehold.co/600x800/e5e5e5/5c3826?text=Scarves" alt="Scarves" class="w-full h-96 object-cover transform group-hover:scale-105 transition-transform duration-500">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-8">
+                                <h3 class="font-serif text-3xl text-white mb-2">Scarves</h3>
+                                <p class="text-brand-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300">Shop Now <i class="fa-solid fa-arrow-right ml-2"></i></p>
+                            </div>
+                        </div>
+                        <!-- Category 3 -->
+                        <div class="group relative rounded-xl overflow-hidden cursor-pointer shadow-md" onclick="navigateTo('shop', 'apparel')">
+                            <img src="https://placehold.co/600x800/e5e5e5/5c3826?text=Apparel" alt="Apparel" class="w-full h-96 object-cover transform group-hover:scale-105 transition-transform duration-500">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-8">
+                                <h3 class="font-serif text-3xl text-white mb-2">Apparel</h3>
+                                <p class="text-brand-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300">Shop Now <i class="fa-solid fa-arrow-right ml-2"></i></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Value Proposition -->
+            <div class="py-20 bg-white">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid md:grid-cols-3 gap-12 text-center">
+                    <div>
+                        <div class="w-16 h-16 bg-brand-100 rounded-full flex items-center justify-center mx-auto mb-6 text-brand-500 text-2xl">
+                            <i class="fa-solid fa-hand-holding-heart"></i>
+                        </div>
+                        <h3 class="font-serif text-xl font-semibold mb-3">Handmade with Love</h3>
+                        <p class="text-gray-600">Every single piece is meticulously crafted by hand, ensuring unique character and exceptional quality.</p>
+                    </div>
+                    <div>
+                        <div class="w-16 h-16 bg-brand-100 rounded-full flex items-center justify-center mx-auto mb-6 text-brand-500 text-2xl">
+                            <i class="fa-solid fa-leaf"></i>
+                        </div>
+                        <h3 class="font-serif text-xl font-semibold mb-3">Premium Yarns</h3>
+                        <p class="text-gray-600">Sourcing only the softest, most durable, and ethically produced yarns for ultimate comfort and longevity.</p>
+                    </div>
+                    <div>
+                        <div class="w-16 h-16 bg-brand-100 rounded-full flex items-center justify-center mx-auto mb-6 text-brand-500 text-2xl">
+                            <i class="fa-solid fa-gift"></i>
+                        </div>
+                        <h3 class="font-serif text-xl font-semibold mb-3">Custom Orders</h3>
+                        <p class="text-gray-600">Have a specific color or style in mind? I accept custom commissions to bring your cozy vision to life.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SHOP VIEW -->
+        <section id="view-shop" class="view-section flex-grow py-12">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                
+                <div class="text-center mb-12">
+                    <h1 class="font-serif text-4xl text-brand-900 mb-4">The Collection</h1>
+                    <p class="text-gray-600 max-w-2xl mx-auto">Browse our current selection of ready-to-ship handmade goods. Filter by category to find exactly what you're looking for.</p>
+                </div>
+
+                <!-- Filters -->
+                <div class="flex flex-wrap justify-center gap-4 mb-12" id="shop-filters">
+                    <!-- Buttons are dynamically injected here via JS based on Google Sheets data -->
+                </div>
+
+                <!-- Product Grid -->
+                <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                    <!-- Products injected via JS -->
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ABOUT VIEW -->
+        <section id="view-about" class="view-section flex-grow py-16 bg-white">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid md:grid-cols-2 gap-16 items-center">
+                    <div class="relative">
+                        <img src="https://placehold.co/800x1000/e5e5e5/5c3826?text=Kayce+Crocheting" alt="Kayce Crocheting" class="rounded-lg shadow-xl w-full">
+                        <div class="absolute -bottom-6 -right-6 bg-brand-500 text-white p-8 rounded-lg shadow-lg hidden lg:block">
+                            <p class="font-serif text-2xl italic">"Stitching joy into every loop."</p>
+                        </div>
+                    </div>
+                    <div>
+                        <h2 class="font-serif text-4xl text-brand-900 mb-6">Meet Kayce</h2>
+                        <div class="w-16 h-1 bg-brand-500 mb-8"></div>
+                        <div class="space-y-6 text-gray-700 leading-relaxed text-lg">
+                            <p>Hi, I'm Kayce! My journey with yarn began years ago on a cold winter evening. What started as a hobby to make gifts for friends and family quickly spiraled into a deep-rooted passion for textile arts and design.</p>
+                            <p>At Cozy Loops, I believe that clothing and accessories should do more than just look good—they should make you feel comforted, confident, and warm. That's why I hand-select every skein of yarn, prioritizing softness, durability, and sustainable practices wherever possible.</p>
+                            <p>Whether you're picking up a chunky beanie for the slopes or a delicate crochet top for the summer festival season, know that hours of careful planning, counting stitches, and genuine love went into creating your piece.</p>
+                            <p>Thank you for supporting slow fashion and handmade art.</p>
+                        </div>
+                        <div class="mt-10">
+                            <img src="https://placehold.co/200x80/ffffff/000000?text=Kayce's+Signature" alt="Kayce Signature" class="opacity-70">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CONTACT VIEW -->
+        <section id="view-contact" class="view-section flex-grow py-16">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="max-w-3xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
+                    <div class="grid md:grid-cols-5 h-full">
+                        <!-- Contact Info -->
+                        <div class="bg-brand-800 text-white p-10 md:col-span-2 flex flex-col justify-between">
+                            <div>
+                                <h2 class="font-serif text-3xl mb-4">Get in Touch</h2>
+                                <p class="text-brand-100 mb-8 font-light text-sm">Have a question about an order, sizing, or a custom request? Send me a message!</p>
+                                
+                                <div class="space-y-6">
+                                    <div class="flex items-start space-x-4">
+                                        <i class="fa-regular fa-envelope mt-1 text-brand-500"></i>
+                                        <span>hello@cozyloopsbykayce.com</span>
+                                    </div>
+                                    <div class="flex items-start space-x-4">
+                                        <i class="fa-solid fa-location-dot mt-1 text-brand-500"></i>
+                                        <span>Studio Based in<br>Portland, OR</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-12 flex space-x-4">
+                                <a href="#" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-brand-500 transition-colors"><i class="fa-brands fa-instagram"></i></a>
+                                <a href="#" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-brand-500 transition-colors"><i class="fa-brands fa-tiktok"></i></a>
+                                <a href="#" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-brand-500 transition-colors"><i class="fa-brands fa-pinterest-p"></i></a>
+                            </div>
+                        </div>
+                        
+                        <!-- Contact Form -->
+                        <div class="p-10 md:col-span-3">
+                            <form onsubmit="handleContactSubmit(event)" class="space-y-6">
+                                <div class="grid grid-cols-2 gap-6">
+                                    <div>
+                                        <label for="fname" class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                                        <input type="text" id="fname" required class="w-full border-gray-300 border rounded-md px-4 py-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-colors">
+                                    </div>
+                                    <div>
+                                        <label for="lname" class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                                        <input type="text" id="lname" required class="w-full border-gray-300 border rounded-md px-4 py-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-colors">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                                    <input type="email" id="email" required class="w-full border-gray-300 border rounded-md px-4 py-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-colors">
+                                </div>
+                                <div>
+                                    <label for="subject" class="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+                                    <select id="subject" class="w-full border-gray-300 border rounded-md px-4 py-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-colors bg-white">
+                                        <option>General Inquiry</option>
+                                        <option>Order Status</option>
+                                        <option>Custom Commission</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="message" class="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                                    <textarea id="message" rows="4" required class="w-full border-gray-300 border rounded-md px-4 py-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-colors resize-none"></textarea>
+                                </div>
+                                <button type="submit" class="w-full bg-brand-800 text-white font-medium py-3 rounded-md hover:bg-brand-900 transition-colors shadow-md">Send Message</button>
+                            </form>
+                            <div id="contact-success" class="hidden mt-4 p-4 bg-green-50 text-green-800 rounded-md border border-green-200">
+                                Thank you for your message! Kayce will get back to you soon.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-brand-900 text-brand-100 py-12 border-t border-brand-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div>
+                <span class="font-serif italic text-2xl text-white font-semibold tracking-tight block mb-4">Cozy Loops<span class="text-brand-500 text-base not-italic ml-2">by Kayce</span></span>
+                <p class="text-sm opacity-80 max-w-xs">Handcrafted knit and crochet apparel designed to bring warmth and joy to your everyday life.</p>
+            </div>
+            <div>
+                <h4 class="text-white font-serif text-lg mb-4">Quick Links</h4>
+                <ul class="space-y-2 text-sm opacity-80">
+                    <li><button onclick="navigateTo('shop')" class="hover:text-white transition-colors">Shop All</button></li>
+                    <li><button onclick="navigateTo('about')" class="hover:text-white transition-colors">About Kayce</button></li>
+                    <li><button onclick="navigateTo('contact')" class="hover:text-white transition-colors">Contact & Custom Orders</button></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Shipping & Returns policy</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-white font-serif text-lg mb-4">Newsletter</h4>
+                <p class="text-sm opacity-80 mb-4">Subscribe for shop updates, new yarn drops, and exclusive discounts.</p>
+                <form class="flex" onsubmit="event.preventDefault(); alert('Subscribed successfully!');">
+                    <input type="email" placeholder="Your email address" required class="w-full px-4 py-2 bg-brand-800 border border-brand-800 rounded-l-md text-white focus:outline-none focus:border-brand-500 placeholder-brand-100/50">
+                    <button type="submit" class="bg-brand-500 hover:bg-brand-500/90 text-white px-4 py-2 rounded-r-md transition-colors font-medium">Join</button>
+                </form>
+            </div>
+        </div>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 pt-8 border-t border-brand-800 text-sm text-center opacity-60 flex flex-col md:flex-row justify-between items-center">
+            <p>&copy; <span id="year"></span> Cozy Loops by Kayce. All rights reserved.</p>
+            <div class="mt-4 md:mt-0 flex space-x-4">
+                <i class="fa-brands fa-cc-stripe text-2xl"></i>
+                <i class="fa-brands fa-cc-visa text-2xl"></i>
+                <i class="fa-brands fa-cc-mastercard text-2xl"></i>
+                <i class="fa-brands fa-cc-paypal text-2xl"></i>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Shopping Cart Overlay/Drawer -->
+    <div id="cart-overlay" class="fixed inset-0 bg-black/50 z-50 hidden opacity-0 transition-opacity duration-300" onclick="if(event.target === this) toggleCart()">
+        <div id="cart-drawer" class="absolute top-0 right-0 h-full w-full sm:w-[400px] bg-white shadow-2xl flex flex-col">
+            <!-- Drawer Header -->
+            <div class="flex justify-between items-center p-6 border-b border-gray-100">
+                <h2 class="font-serif text-2xl text-brand-900">Your Cart</h2>
+                <button onclick="toggleCart()" class="text-gray-400 hover:text-gray-800 focus:outline-none">
+                    <i class="fa-solid fa-xmark text-2xl"></i>
+                </button>
+            </div>
+            
+            <!-- Cart Items -->
+            <div id="cart-items-container" class="flex-grow overflow-y-auto p-6 space-y-6">
+                <!-- Injected via JS -->
+            </div>
+
+            <!-- Drawer Footer -->
+            <div class="border-t border-gray-100 p-6 bg-brand-50">
+                <div class="flex justify-between items-center mb-4 text-lg font-medium text-brand-900">
+                    <span>Subtotal</span>
+                    <span id="cart-subtotal">$0.00</span>
+                </div>
+                <p class="text-sm text-gray-500 mb-6">Taxes and shipping calculated at checkout.</p>
+                <button onclick="checkout()" class="w-full bg-brand-800 text-white font-medium py-4 rounded-md hover:bg-brand-900 transition-colors shadow-lg flex justify-center items-center">
+                    <i class="fa-solid fa-lock mr-2 text-sm"></i> Secure Checkout
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // --- Data ---
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbwvf8WK80Lwa-Fu5RKsb7PMph2mBlcZof145CTbcgrVRaxPrsm1EGogougLyw7XGRzL/exec';
+        let productCatalog = [];
+        let cart = [];
+        let isInventoryLoaded = false;
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('year').textContent = new Date().getFullYear();
+            loadCart();
+            fetchInventory(); // Fetch data from Google Sheets
+            
+            // Check hash for direct links, default to home
+            const hash = window.location.hash.replace('#', '');
+            if(['home', 'shop', 'about', 'contact'].includes(hash)) {
+                navigateTo(hash);
+            }
+        });
+
+        async function fetchInventory() {
+            const grid = document.getElementById('product-grid');
+            grid.innerHTML = '<div class="col-span-full flex justify-center py-12"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-800"></div></div>';
+
+            try {
+                const response = await fetch(GAS_URL);
+                if (!response.ok) throw new Error('Network response was not ok');
+                const data = await response.json();
+                
+                if (data.error) {
+                    console.error("Script Error:", data.error);
+                    throw new Error(data.error);
+                }
+                
+                productCatalog = data;
+                isInventoryLoaded = true;
+                
+                // Build dynamic filters based on data
+                buildFilters();
+                
+                // Determine current active filter based on the UI state, default to 'all'
+                let activeFilter = 'all';
+                // Try to get hash if user navigated to a specific category
+                const hashParams = window.location.hash.split('?filter=');
+                if(hashParams.length > 1) {
+                    activeFilter = hashParams[1];
+                }
+                
+                renderProducts(activeFilter);
+
+            } catch (error) {
+                console.error("Failed to load inventory:", error);
+                grid.innerHTML = '<p class="col-span-full text-center text-red-500 py-10">Failed to load inventory. Please check your connection and try again.</p>';
+            }
+        }
+
+        // --- Dynamic Filter Logic ---
+        function buildFilters() {
+            const filtersContainer = document.getElementById('shop-filters');
+            filtersContainer.innerHTML = ''; // Clear container
+
+            // Extract unique categories, ignoring blank entries, trim whitespace, and lowercase
+            const rawCategories = productCatalog
+                .map(p => p.category ? p.category.toLowerCase().trim() : 'uncategorized')
+                .filter(c => c !== '');
+            
+            const uniqueCategories = [...new Set(rawCategories)];
+
+            // Create 'All Items' button
+            filtersContainer.appendChild(createFilterBtn('all', 'All Items'));
+
+            // Create buttons for each unique category
+            uniqueCategories.forEach(cat => {
+                // Capitalize first letter for display text
+                const displayCat = cat.charAt(0).toUpperCase() + cat.slice(1);
+                filtersContainer.appendChild(createFilterBtn(cat, displayCat));
+            });
+        }
+
+        function createFilterBtn(filterValue, displayText) {
+            const btn = document.createElement('button');
+            btn.className = "filter-btn px-6 py-2 rounded-full border border-brand-800 text-brand-800 hover:bg-brand-800 hover:text-white transition-colors capitalize";
+            btn.dataset.filter = filterValue; // Store the raw filter value
+            btn.innerText = displayText;
+            btn.onclick = () => renderProducts(filterValue);
+            return btn;
+        }
+
+        // --- Navigation Logic ---
+        function navigateTo(viewId, subCategory = null) {
+            // Hide all views
+            document.querySelectorAll('.view-section').forEach(el => {
+                el.classList.remove('active');
+            });
+            
+            // Show target view
+            document.getElementById(`view-${viewId}`).classList.add('active');
+            
+            // Handle Shop Subcategory routing
+            if(viewId === 'shop') {
+                if(subCategory) {
+                    window.location.hash = `${viewId}?filter=${subCategory}`;
+                    renderProducts(subCategory);
+                } else {
+                    window.location.hash = viewId;
+                    renderProducts('all'); // Default when just clicking 'Shop'
+                }
+            } else {
+                window.location.hash = viewId;
+            }
+            window.scrollTo(0, 0);
+        }
+
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('open');
+        }
+
+        // --- Shop Logic ---
+        function renderProducts(filterCategory) {
+            const grid = document.getElementById('product-grid');
+            
+            // Update active filter button styling dynamically based on data-filter
+            document.querySelectorAll('#shop-filters .filter-btn').forEach(btn => {
+                // Reset to default class
+                btn.className = "filter-btn px-6 py-2 rounded-full border border-brand-800 text-brand-800 hover:bg-brand-800 hover:text-white transition-colors capitalize";
+                
+                if(btn.dataset.filter === filterCategory){
+                    btn.classList.add('bg-brand-800', 'text-white', 'active');
+                    btn.classList.remove('text-brand-800');
+                }
+            });
+
+            // If inventory hasn't finished loading, keep spinner
+            if (!isInventoryLoaded) {
+                grid.innerHTML = '<div class="col-span-full flex justify-center py-12"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-800"></div></div>';
+                return;
+            }
+
+            grid.innerHTML = ''; // Clear current
+
+            // Filter data
+            const filteredProducts = filterCategory === 'all' 
+                ? productCatalog 
+                : productCatalog.filter(p => p.category && p.category.toLowerCase().trim() === filterCategory);
+
+            // Render HTML
+            if(filteredProducts.length === 0) {
+                grid.innerHTML = `<p class="col-span-full text-center text-gray-500 py-10">No items found in this category.</p>`;
+                return;
+            }
+
+            filteredProducts.forEach(product => {
+                const card = document.createElement('div');
+                card.className = "product-card bg-white rounded-xl shadow-sm hover:shadow-xl transition-shadow duration-300 overflow-hidden flex flex-col group";
+                card.innerHTML = `
+                    <div class="relative overflow-hidden cursor-pointer h-80 bg-gray-100">
+                        <img src="${product.img}" alt="${product.name}" class="product-img w-full h-full object-cover">
+                        <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/50 to-transparent p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 flex justify-center">
+                             <button onclick="quickAddToCart(${product.id})" class="bg-brand-500 text-white px-6 py-2 rounded-full text-sm font-medium hover:bg-brand-600 transition-colors w-full shadow-lg">Quick Add to Cart</button>
+                        </div>
+                    </div>
+                    <div class="p-6 flex flex-col flex-grow">
+                        <p class="text-xs text-brand-500 uppercase tracking-wider font-semibold mb-1">${product.category || 'Uncategorized'}</p>
+                        <h3 class="font-serif text-xl text-brand-900 mb-2 flex-grow">${product.name}</h3>
+                        <div class="flex justify-between items-center mt-4">
+                            <span class="text-lg font-semibold text-gray-900">$${Number(product.price).toFixed(2)}</span>
+                            <button onclick="addToCart(${product.id})" class="w-10 h-10 rounded-full border border-brand-200 text-brand-800 flex items-center justify-center hover:bg-brand-50 hover:border-brand-500 transition-colors focus:outline-none" aria-label="Add to cart">
+                                <i class="fa-solid fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // --- Cart Logic ---
+        function quickAddToCart(productId) {
+            addToCart(productId);
+            toggleCart(); // Open cart to show user action
+        }
+
+        function addToCart(productId) {
+            const product = productCatalog.find(p => p.id === productId);
+            if(!product) return;
+
+            const existingItem = cart.find(item => item.id === productId);
+            if(existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                cart.push({ ...product, quantity: 1 });
+            }
+            
+            saveCart();
+            updateCartUI();
+        }
+
+        function removeFromCart(productId) {
+            cart = cart.filter(item => item.id !== productId);
+            saveCart();
+            updateCartUI();
+        }
+
+        function changeQuantity(productId, delta) {
+            const item = cart.find(i => i.id === productId);
+            if(!item) return;
+
+            item.quantity += delta;
+            if(item.quantity <= 0) {
+                removeFromCart(productId);
+            } else {
+                saveCart();
+                updateCartUI();
+            }
+        }
+
+        function saveCart() {
+            localStorage.setItem('cozyloops_cart', JSON.stringify(cart));
+        }
+
+        function loadCart() {
+            const saved = localStorage.getItem('cozyloops_cart');
+            if(saved) {
+                cart = JSON.parse(saved);
+                updateCartUI();
+            }
+        }
+
+        function updateCartUI() {
+            // Update bubble count
+            const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+            document.getElementById('cart-count').innerText = count;
+
+            // Update drawer items
+            const container = document.getElementById('cart-items-container');
+            container.innerHTML = '';
+            
+            let subtotal = 0;
+
+            if(cart.length === 0) {
+                container.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-full text-gray-400 space-y-4">
+                        <i class="fa-solid fa-basket-shopping text-5xl mb-2"></i>
+                        <p>Your cart is empty.</p>
+                        <button onclick="toggleCart(); navigateTo('shop');" class="px-6 py-2 border border-brand-500 text-brand-500 rounded-full hover:bg-brand-50 transition-colors">Start Shopping</button>
+                    </div>
+                `;
+            } else {
+                cart.forEach(item => {
+                    subtotal += Number(item.price) * item.quantity;
+                    const el = document.createElement('div');
+                    el.className = "flex space-x-4 bg-white";
+                    el.innerHTML = `
+                        <div class="h-24 w-20 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
+                            <img src="${item.img}" alt="${item.name}" class="h-full w-full object-cover object-center">
+                        </div>
+                        <div class="flex flex-1 flex-col justify-between">
+                            <div>
+                                <div class="flex justify-between text-base font-medium text-gray-900">
+                                    <h3 class="font-serif text-brand-900 line-clamp-1 mr-4">${item.name}</h3>
+                                    <p class="ml-4">$${(Number(item.price) * item.quantity).toFixed(2)}</p>
+                                </div>
+                                <p class="mt-1 text-sm text-gray-500 capitalize">${item.category}</p>
+                            </div>
+                            <div class="flex flex-1 items-end justify-between text-sm">
+                                <div class="flex items-center border border-gray-300 rounded-md">
+                                    <button onclick="changeQuantity(${item.id}, -1)" class="px-2 py-1 text-gray-600 hover:text-brand-500 focus:outline-none"><i class="fa-solid fa-minus text-xs"></i></button>
+                                    <span class="px-2 py-1 font-medium text-gray-900 w-8 text-center">${item.quantity}</span>
+                                    <button onclick="changeQuantity(${item.id}, 1)" class="px-2 py-1 text-gray-600 hover:text-brand-500 focus:outline-none"><i class="fa-solid fa-plus text-xs"></i></button>
+                                </div>
+                                <div class="flex">
+                                    <button type="button" onclick="removeFromCart(${item.id})" class="font-medium text-red-500 hover:text-red-700">Remove</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(el);
+                });
+            }
+
+            // Update subtotal
+            document.getElementById('cart-subtotal').innerText = `$${subtotal.toFixed(2)}`;
+        }
+
+        function toggleCart() {
+            const overlay = document.getElementById('cart-overlay');
+            const drawer = document.getElementById('cart-drawer');
+            
+            if(overlay.classList.contains('hidden')) {
+                overlay.classList.remove('hidden');
+                // slight delay for transition
+                setTimeout(() => {
+                    overlay.classList.remove('opacity-0');
+                    overlay.classList.add('opacity-100');
+                    drawer.classList.add('open');
+                }, 10);
+            } else {
+                overlay.classList.remove('opacity-100');
+                overlay.classList.add('opacity-0');
+                drawer.classList.remove('open');
+                setTimeout(() => {
+                    overlay.classList.add('hidden');
+                }, 300); // match transition duration
+            }
+        }
+
+        function checkout() {
+            if(cart.length === 0) {
+                alert("Your cart is empty!");
+                return;
+            }
+            // In a real app, this redirects to Stripe/Shopify checkout.
+            alert(`Proceeding to secure checkout...\nOrder Total: ${document.getElementById('cart-subtotal').innerText}`);
+        }
+
+        // --- Contact Form Logic ---
+        function handleContactSubmit(e) {
+            e.preventDefault();
+            // Simulate form processing
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerText;
+            btn.innerText = 'Sending...';
+            btn.disabled = true;
+
+            setTimeout(() => {
+                e.target.reset();
+                btn.innerText = originalText;
+                btn.disabled = false;
+                document.getElementById('contact-success').classList.remove('hidden');
+                setTimeout(() => {
+                     document.getElementById('contact-success').classList.add('hidden');
+                }, 5000);
+            }, 1000);
+        }
+
+    </script>
+</body>
+</html>
