@@ -144,18 +144,18 @@
         <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row justify-between items-center">
             
             <!-- Logo area -->
-            <button type="button" class="mb-4 sm:mb-0 cursor-pointer rounded-xl focus:outline-none focus:ring-2 focus:ring-theme-blue/60" onclick="switchPage('home')" aria-label="Cozy Loops home">
-                <img src="logo.png" alt="Cozy Loops" class="h-16 sm:h-20 w-auto max-w-[220px] sm:max-w-[270px] object-contain">
-            </button>
+            <a href="/" class="mb-4 sm:mb-0 cursor-pointer rounded-xl focus:outline-none focus:ring-2 focus:ring-theme-blue/60" data-page-link="home" aria-label="Cozy Loops home">
+                <img src="/logo.png" alt="Cozy Loops" class="h-16 sm:h-20 w-auto max-w-[220px] sm:max-w-[270px] object-contain">
+            </a>
             
             <!-- Navigation Tabs -->
             <div class="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
                 <nav class="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm sm:text-base font-medium text-theme-gray">
-                    <button onclick="switchPage('home')" class="nav-tab active focus:outline-none" data-target="home">Home</button>
-                    <button onclick="switchPage('shop')" class="nav-tab focus:outline-none" data-target="shop">Shop</button>
-                    <button onclick="switchPage('custom')" class="nav-tab focus:outline-none" data-target="custom">Custom</button>
-                    <button onclick="switchPage('contact')" class="nav-tab focus:outline-none" data-target="contact">Contact</button>
-                    <button onclick="switchPage('about')" class="nav-tab focus:outline-none" data-target="about">About Me</button>
+                    <a href="/" class="nav-tab active focus:outline-none" data-target="home" data-page-link="home">Home</a>
+                    <a href="/shop" class="nav-tab focus:outline-none" data-target="shop" data-page-link="shop">Shop</a>
+                    <a href="/custom" class="nav-tab focus:outline-none" data-target="custom" data-page-link="custom">Custom</a>
+                    <a href="/contact" class="nav-tab focus:outline-none" data-target="contact" data-page-link="contact">Contact</a>
+                    <a href="/about" class="nav-tab focus:outline-none" data-target="about" data-page-link="about">About Me</a>
                 </nav>
                 <button type="button" onclick="openCart()" class="relative inline-flex items-center gap-2 bg-theme-black border border-theme-darkblue/30 text-theme-light px-4 py-2 rounded-full hover:border-theme-purple transition-colors" aria-label="Open shopping cart">
                     <i class="fa-solid fa-cart-shopping text-theme-purple"></i>
@@ -226,12 +226,12 @@
                     Discover unique, high-quality, and handcrafted items made with love. From cozy wearables to charming accessories, find your perfect loop today.
                 </p>
                 <div class="flex justify-center space-x-4">
-                    <button onclick="switchPage('shop')" class="bg-gradient-to-r from-theme-blue to-theme-purple text-white px-8 py-3 rounded-full font-semibold hover:opacity-90 transition-opacity shadow-lg shadow-theme-purple/30">
+                    <a href="/shop" data-page-link="shop" class="bg-gradient-to-r from-theme-blue to-theme-purple text-white px-8 py-3 rounded-full font-semibold hover:opacity-90 transition-opacity shadow-lg shadow-theme-purple/30">
                         Explore Shop
-                    </button>
-                    <button onclick="switchPage('custom')" class="border border-theme-blue text-theme-blue px-8 py-3 rounded-full font-semibold hover:bg-theme-blue/10 transition-colors">
+                    </a>
+                    <a href="/custom" data-page-link="custom" class="border border-theme-blue text-theme-blue px-8 py-3 rounded-full font-semibold hover:bg-theme-blue/10 transition-colors">
                         Custom Orders
-                    </button>
+                    </a>
                 </div>
             </div>
             
@@ -324,9 +324,9 @@
                     <div class="md:w-1/2 bg-theme-black p-6 rounded-xl border border-theme-darkblue/30 w-full">
                         <h4 class="text-xl font-medium text-theme-purple mb-4">Start a Custom Request</h4>
                         <p class="text-sm text-theme-gray mb-4">Use the contact form and mention "Custom Request" in your message, or email directly to discuss pricing and timelines.</p>
-                        <button onclick="switchPage('contact')" class="w-full bg-theme-blue hover:bg-theme-darkblue text-white py-2 rounded-lg transition-colors">
+                        <a href="/contact" data-page-link="contact" class="block text-center w-full bg-theme-blue hover:bg-theme-darkblue text-white py-2 rounded-lg transition-colors">
                             Go to Contact Form
-                        </button>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -407,6 +407,9 @@
     <footer class="bg-theme-black border-t border-theme-darkblue/20 py-6 mt-auto">
         <div class="container mx-auto px-4 text-center text-theme-gray text-sm">
             <p>&copy; <span id="year"></span> Cozy Loops by Kayce Cochran. All rights reserved.</p>
+            <p class="mt-2">
+                <a href="https://omni-sciencecom.com" target="_blank" rel="noopener noreferrer" class="text-theme-blue hover:text-theme-purple underline underline-offset-4 transition-colors">Made by Omni-Science</a>
+            </p>
         </div>
     </footer>
 
@@ -425,14 +428,45 @@
         let yarnOptionsError = null;
 
         // --- Initialization ---
+        const PAGE_ROUTES = {
+            home: '/',
+            shop: '/shop',
+            custom: '/custom',
+            contact: '/contact',
+            about: '/about'
+        };
+        const ROUTE_PAGES = Object.fromEntries(Object.entries(PAGE_ROUTES).map(([page, path]) => [path, page]));
+        const PAGE_TITLES = {
+            home: 'Cozy Loops',
+            shop: 'Shop | Cozy Loops',
+            custom: 'Custom Orders | Cozy Loops',
+            contact: 'Contact | Cozy Loops',
+            about: 'About Me | Cozy Loops'
+        };
+
         document.addEventListener('DOMContentLoaded', () => {
             // Setup Search Listener
             document.getElementById('searchInput').addEventListener('input', filterProducts);
-            
+
+            // Real page links: customers can copy/open /shop, /custom, /contact, etc.
+            document.querySelectorAll('[data-page-link]').forEach(link => {
+                link.addEventListener('click', (event) => {
+                    // Preserve normal browser behavior for new-tab/window modifiers.
+                    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                    event.preventDefault();
+                    switchPage(link.dataset.pageLink, { pushHistory: true });
+                });
+            });
+
+            window.addEventListener('popstate', () => {
+                switchPage(pageFromPath(window.location.pathname), { pushHistory: false, smooth: false });
+            });
+
             renderCart();
             setupImageViewerGestures();
 
-            // Show Stripe return state, if Checkout redirected back here.
+            // Load the requested URL before showing Stripe return state.
+            switchPage(pageFromPath(window.location.pathname), { pushHistory: false, smooth: false });
             handleCheckoutReturn();
 
             // Load the locked Ravelry yarn/colorways before rendering products.
@@ -440,26 +474,31 @@
         });
 
         // --- Navigation Logic ---
-        function switchPage(pageId) {
-            // Hide all pages
-            document.querySelectorAll('.page-content').forEach(page => {
-                page.classList.remove('active');
-            });
-            
-            // Remove active state from tabs
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // Show selected page
+        function pageFromPath(pathname) {
+            const normalized = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
+            return ROUTE_PAGES[normalized] || 'home';
+        }
+
+        function switchPage(pageId, options = {}) {
+            const { pushHistory = true, smooth = true } = options;
+            if (!PAGE_ROUTES[pageId] || !document.getElementById(pageId)) pageId = 'home';
+
+            document.querySelectorAll('.page-content').forEach(page => page.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+
             document.getElementById(pageId).classList.add('active');
-            
-            // Highlight active tab
             const activeTab = document.querySelector(`.nav-tab[data-target="${pageId}"]`);
-            if (activeTab) activeTab.classList.add('active');
-            
-            // Scroll to top
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            if (activeTab) {
+                activeTab.classList.add('active');
+                activeTab.setAttribute('aria-current', 'page');
+            }
+            document.querySelectorAll('.nav-tab:not(.active)').forEach(tab => tab.removeAttribute('aria-current'));
+            document.title = PAGE_TITLES[pageId] || 'Cozy Loops';
+
+            if (pushHistory && window.location.pathname !== PAGE_ROUTES[pageId]) {
+                history.pushState({ page: pageId }, '', PAGE_ROUTES[pageId]);
+            }
+            window.scrollTo({ top: 0, behavior: smooth ? 'smooth' : 'auto' });
         }
 
         // --- Data Fetching & Processing ---

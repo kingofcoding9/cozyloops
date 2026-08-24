@@ -45,6 +45,15 @@ export default {
       return json({ error: 'Not found.' }, 404);
     }
 
+    // Clean, shareable storefront routes all render the SPA entry point.
+    // Static files continue to be served normally by the assets binding.
+    const storefrontRoutes = new Set(['/', '/shop', '/custom', '/contact', '/about']);
+    const normalizedPath = url.pathname.length > 1 ? url.pathname.replace(/\/+$/, '') : url.pathname;
+    if (storefrontRoutes.has(normalizedPath) && (request.method === 'GET' || request.method === 'HEAD')) {
+      const indexUrl = new URL('/', url);
+      return env.ASSETS.fetch(new Request(indexUrl, request));
+    }
+
     return env.ASSETS.fetch(request);
   },
 };
