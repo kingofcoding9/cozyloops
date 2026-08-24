@@ -19,7 +19,6 @@ export default {
       }
       return getProducts({ request, env, ctx });
     }
-
     if (url.pathname === '/api/checkout') {
       if (request.method !== 'POST') {
         return json({ error: 'Method not allowed.' }, 405);
