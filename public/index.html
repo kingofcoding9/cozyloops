@@ -162,7 +162,7 @@
         <div class="p-5 border-b border-theme-darkblue/30 flex items-center justify-between">
             <div>
                 <h2 class="text-2xl font-bold text-theme-light">Your Cart</h2>
-                <p class="text-sm text-theme-gray">L, XL, and 2X add $5 per item.</p>
+                <p class="text-sm text-theme-gray">Product price plus the yarn skeins required for your selected fit.</p>
             </div>
             <button type="button" onclick="closeCart()" class="w-10 h-10 rounded-full border border-theme-darkblue/30 text-theme-gray hover:text-theme-purple" aria-label="Close cart">
                 <i class="fa-solid fa-xmark"></i>
@@ -179,6 +179,27 @@
             </button>
         </div>
     </aside>
+
+    <!-- Yarn Image Viewer -->
+    <div id="imageViewer" class="hidden fixed inset-0 z-[90] bg-black/90 p-3 sm:p-6" role="dialog" aria-modal="true" aria-label="Yarn image viewer">
+        <div class="h-full max-w-6xl mx-auto flex flex-col">
+            <div class="flex items-center justify-between gap-3 pb-3 text-white">
+                <div class="min-w-0">
+                    <p id="imageViewerTitle" class="font-semibold truncate">Yarn image</p>
+                    <p class="text-xs text-white/70">Scroll or pinch to zoom. Drag to pan.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="zoomViewer(-0.25)" class="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20" aria-label="Zoom out"><i class="fa-solid fa-minus"></i></button>
+                    <button type="button" onclick="resetViewer()" class="h-11 px-4 rounded-full bg-white/10 hover:bg-white/20 text-sm">Reset</button>
+                    <button type="button" onclick="zoomViewer(0.25)" class="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20" aria-label="Zoom in"><i class="fa-solid fa-plus"></i></button>
+                    <button type="button" onclick="closeImageViewer()" class="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20" aria-label="Close image viewer"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+            </div>
+            <div id="imageViewerStage" class="relative flex-1 min-h-0 overflow-hidden rounded-xl bg-black/40 border border-white/10 touch-none cursor-grab select-none">
+                <img id="imageViewerImage" src="" alt="" draggable="false" class="absolute left-1/2 top-1/2 max-w-[90%] max-h-[90%] object-contain will-change-transform pointer-events-none">
+            </div>
+        </div>
+    </div>
 
     <!-- Main Content Area -->
     <main class="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -390,6 +411,8 @@
         let allProducts = [];
         let categories = {}; // Groups products by Type
         let uniqueTags = new Set();
+        let yarnOptions = null;
+        let yarnOptionsError = null;
 
         // --- Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -397,12 +420,13 @@
             document.getElementById('searchInput').addEventListener('input', filterProducts);
             
             renderCart();
+            setupImageViewerGestures();
 
             // Show Stripe return state, if Checkout redirected back here.
             handleCheckoutReturn();
 
-            // Load products through the same-origin Cloudflare API
-            loadProducts();
+            // Load the locked Ravelry yarn/colorways before rendering products.
+            initializeStore();
         });
 
         // --- Navigation Logic ---
@@ -536,6 +560,29 @@
             container.classList.remove('hidden');
         }
 
+        async function initializeStore() {
+            await loadYarnOptions();
+            await loadProducts();
+        }
+
+        async function loadYarnOptions() {
+            try {
+                const response = await fetch('/api/yarn-options', { headers: { 'Accept': 'application/json' } });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data?.error || `Yarn request failed with ${response.status}`);
+                if (data?.yarn?.id !== 7343 || data?.yarn?.name !== 'I Love This Yarn!') {
+                    throw new Error('Unexpected yarn returned by server.');
+                }
+                yarnOptions = data;
+                yarnOptionsError = null;
+                renderCart();
+            } catch (error) {
+                console.error('Yarn options failed:', error);
+                yarnOptions = null;
+                yarnOptionsError = error;
+            }
+        }
+
         async function loadProducts() {
             const loader = document.getElementById('shopLoader');
             const errorDiv = document.getElementById('shopError');
@@ -574,6 +621,39 @@
             }
         }
 
+        function positiveSheetNumber(value) {
+            const number = Number(value);
+            return Number.isFinite(number) && number > 0 ? number : null;
+        }
+
+        function getProductYarnConfig(product) {
+            const general = positiveSheetNumber(product['Yarn Skein Count']);
+            const female = positiveSheetNumber(product.Female);
+            const male = positiveSheetNumber(product.Male);
+            const hasFitCounts = female != null || male != null;
+
+            if (hasFitCounts) {
+                return {
+                    configured: true,
+                    mode: 'fit',
+                    options: [
+                        ...(female != null ? [{ fit: 'Female', skeins: female }] : []),
+                        ...(male != null ? [{ fit: 'Male', skeins: male }] : [])
+                    ]
+                };
+            }
+            if (general != null) {
+                return { configured: true, mode: 'standard', options: [{ fit: 'Standard', skeins: general }] };
+            }
+            return { configured: false, mode: 'none', options: [] };
+        }
+
+        function configuredUnitTotal(basePrice, skeins) {
+            const yarnPrice = Number(yarnOptions?.yarnPrice);
+            if (!Number.isFinite(yarnPrice) || !Number.isFinite(Number(skeins))) return null;
+            return Number(basePrice) + (Number(skeins) * yarnPrice);
+        }
+
         function createProductCard(product) {
             const card = document.createElement('div');
             card.className = 'product-card bg-theme-black border border-theme-darkblue/30 rounded-lg overflow-hidden flex flex-col h-full';
@@ -594,6 +674,11 @@
             const price = product.Price || product.price || 'Contact for price';
             const name = product.Name || product.name || 'Unnamed Product';
             const description = product.Description || product.description || 'No description available.';
+            const yarnConfig = getProductYarnConfig(product);
+            const yarnPrice = Number(yarnOptions?.yarnPrice);
+            const fitOptionsHtml = yarnConfig.mode === 'fit'
+                ? `<option value="">Choose fit</option>${yarnConfig.options.map(option => `<option value="${option.fit}" data-skeins="${option.skeins}">${option.fit} — ${option.skeins} skein${option.skeins === 1 ? '' : 's'}</option>`).join('')}`
+                : `<option value="Standard" data-skeins="${yarnConfig.options[0]?.skeins || ''}">Standard — ${yarnConfig.options[0]?.skeins || 0} skein${yarnConfig.options[0]?.skeins === 1 ? '' : 's'}</option>`;
             
             // Format Tags
             let tagsHtml = '';
@@ -609,7 +694,8 @@
                 </div>
                 <div class="p-4 flex flex-col flex-grow">
                     <h4 class="text-lg font-bold text-theme-light mb-1">${name}</h4>
-                    <p class="text-theme-purple font-semibold mb-2">${typeof price === 'number' ? '$'+price.toFixed(2) : price}</p>
+                    <p class="text-theme-purple font-semibold mb-1">${typeof price === 'number' ? 'Base $'+price.toFixed(2) : price}</p>
+                    ${typeof price === 'number' && yarnOptions ? `<p class="text-xs text-theme-gray mb-2">Yarn: $${Number(yarnOptions.yarnPrice).toFixed(2)} per skein</p>` : ''}
                     <p class="text-sm text-theme-gray mb-4 flex-grow line-clamp-3">${description}</p>
                     ${tagsHtml ? `<div class="mb-4">${tagsHtml}</div>` : ''}
                     <div class="mt-auto space-y-2">
@@ -620,11 +706,46 @@
                                     <option value="XS">Extra Small (XS)</option>
                                     <option value="S">Small (S)</option>
                                     <option value="M" selected>Medium (M)</option>
-                                    <option value="L">Large (L) — +$5</option>
-                                    <option value="XL">Extra Large (XL) — +$5</option>
-                                    <option value="2X">2X — +$5</option>
+                                    <option value="L">Large (L)</option>
+                                    <option value="XL">Extra Large (XL)</option>
+                                    <option value="2X">2X</option>
                                 </select>
                             </label>
+                            ${yarnConfig.configured ? `
+                                <label class="block text-sm font-medium text-theme-light">
+                                    ${yarnConfig.mode === 'fit' ? 'Fit' : 'Yarn requirement'}
+                                    <select data-fit-select class="mt-1 w-full bg-theme-dark border border-theme-darkblue/40 rounded-lg py-2 px-3 text-theme-light focus:outline-none focus:border-theme-purple" ${yarnConfig.mode === 'standard' ? 'disabled' : ''}>
+                                        ${fitOptionsHtml}
+                                    </select>
+                                </label>
+                                <div data-price-preview class="text-sm rounded-lg bg-theme-dark border border-theme-darkblue/30 px-3 py-2 text-theme-gray">
+                                    ${yarnConfig.mode === 'standard' ? `${yarnConfig.options[0].skeins} skein${yarnConfig.options[0].skeins === 1 ? '' : 's'} required` : 'Choose a fit to calculate yarn cost'}
+                                </div>`
+                                : `<div class="text-sm rounded-lg bg-red-50 border border-red-300 px-3 py-2 text-red-800">Yarn quantity is not configured for this product in the Google Sheet.</div>`}
+                            <div class="rounded-lg border border-theme-darkblue/30 bg-theme-dark p-3 space-y-2">
+                                <div class="flex items-center justify-between gap-2">
+                                    <div class="min-w-0">
+                                        <p class="text-xs uppercase tracking-wide text-theme-gray">Yarn</p>
+                                        <p class="font-semibold text-theme-light truncate">I Love This Yarn! <span class="font-normal text-theme-gray">by Hobby Lobby</span></p>
+                                    </div>
+                                    <button type="button" data-yarn-view class="hidden shrink-0 text-theme-blue hover:text-theme-purple text-sm underline">View yarn</button>
+                                </div>
+                                <label class="block text-sm font-medium text-theme-light">
+                                    Color
+                                    <select data-colorway-select class="mt-1 w-full bg-theme-black border border-theme-darkblue/40 rounded-lg py-2 px-3 text-theme-light focus:outline-none focus:border-theme-purple" ${yarnOptions ? '' : 'disabled'}>
+                                        <option value="">${yarnOptions ? 'Choose a color' : (yarnOptionsError ? 'Colors unavailable' : 'Loading colors…')}</option>
+                                    </select>
+                                </label>
+                                <button type="button" data-color-preview class="hidden w-full items-center gap-3 text-left rounded-lg border border-theme-darkblue/30 bg-theme-black p-2 hover:border-theme-purple transition-colors">
+                                    <img data-color-image src="" alt="" class="w-14 h-14 rounded-md object-cover bg-theme-dark">
+                                    <span class="min-w-0">
+                                        <span class="block text-xs text-theme-gray">Selected color</span>
+                                        <span data-color-name class="block font-medium text-theme-light truncate"></span>
+                                        <span class="block text-xs text-theme-blue">Tap to zoom</span>
+                                    </span>
+                                </button>
+                                ${yarnOptionsError ? '<p class="text-xs text-red-700">Ravelry colors could not be loaded. Refresh and try again.</p>' : ''}
+                            </div>
                             <button type="button" data-cart-button class="w-full bg-gradient-to-r from-theme-blue to-theme-purple text-white font-semibold py-2.5 rounded-lg hover:opacity-90 transition-opacity">
                                 <i class="fa-solid fa-cart-plus mr-2"></i>Add to Cart
                             </button>` : ''}
@@ -635,11 +756,93 @@
                 </div>
             `;
 
+            const fitSelect = card.querySelector('[data-fit-select]');
+            const pricePreview = card.querySelector('[data-price-preview]');
+
+            const updatePricePreview = () => {
+                if (!fitSelect || !pricePreview) return;
+                const selectedFit = fitSelect.options[fitSelect.selectedIndex];
+                const skeins = Number(selectedFit?.dataset?.skeins);
+                const total = configuredUnitTotal(price, skeins);
+                if (!selectedFit?.value || !Number.isFinite(skeins) || total == null) {
+                    pricePreview.textContent = 'Choose a fit to calculate yarn cost';
+                    return;
+                }
+                const yarnCost = skeins * Number(yarnOptions.yarnPrice);
+                pricePreview.innerHTML = `${skeins} skein${skeins === 1 ? '' : 's'} × $${Number(yarnOptions.yarnPrice).toFixed(2)} yarn = $${yarnCost.toFixed(2)}<br><strong class="text-theme-purple">Estimated item total: $${total.toFixed(2)}</strong>`;
+            };
+            if (fitSelect) {
+                fitSelect.addEventListener('change', updatePricePreview);
+                updatePricePreview();
+            }
+
+            const colorSelect = card.querySelector('[data-colorway-select]');
+            const colorPreview = card.querySelector('[data-color-preview]');
+            const colorImage = card.querySelector('[data-color-image]');
+            const colorName = card.querySelector('[data-color-name]');
+            const yarnView = card.querySelector('[data-yarn-view]');
+
+            if (colorSelect && yarnOptions) {
+                yarnOptions.colorways.forEach(colorway => {
+                    const option = document.createElement('option');
+                    option.value = String(colorway.id);
+                    option.textContent = colorway.name;
+                    option.dataset.name = colorway.name;
+                    option.dataset.image = colorway.image || '';
+                    colorSelect.appendChild(option);
+                });
+                colorSelect.disabled = false;
+                colorSelect.addEventListener('change', () => {
+                    const selected = colorSelect.options[colorSelect.selectedIndex];
+                    const selectedName = selected?.dataset?.name || '';
+                    const selectedImage = selected?.dataset?.image || '';
+                    colorName.textContent = selectedName;
+                    if (selectedName && selectedImage) {
+                        colorImage.src = selectedImage;
+                        colorImage.alt = `${selectedName} I Love This Yarn!`;
+                        colorPreview.classList.remove('hidden');
+                        colorPreview.classList.add('flex');
+                        colorPreview.onclick = () => openImageViewer(selectedImage, `${selectedName} — I Love This Yarn!`);
+                    } else {
+                        colorPreview.classList.add('hidden');
+                        colorPreview.classList.remove('flex');
+                    }
+                });
+            }
+
+            const yarnImage = yarnOptions?.yarn?.photos?.[0] || '';
+            if (yarnView && yarnImage) {
+                yarnView.classList.remove('hidden');
+                yarnView.addEventListener('click', () => openImageViewer(yarnImage, 'I Love This Yarn! — Hobby Lobby'));
+            }
+
             const cartButton = card.querySelector('[data-cart-button]');
             if (cartButton) {
+                cartButton.disabled = !yarnOptions || !yarnConfig.configured;
                 cartButton.addEventListener('click', () => {
                     const size = card.querySelector('[data-size-select]').value;
-                    addToCart({ name, size, basePrice: price, image: imgUrl });
+                    const selectedFit = fitSelect?.options[fitSelect.selectedIndex];
+                    const fit = selectedFit?.value || '';
+                    const skeinCount = Number(selectedFit?.dataset?.skeins);
+                    if (!fit || !Number.isFinite(skeinCount) || skeinCount <= 0) {
+                        fitSelect?.focus();
+                        alert('Please choose a fit with a configured yarn quantity.');
+                        return;
+                    }
+                    const selected = colorSelect?.options[colorSelect.selectedIndex];
+                    const colorwayId = colorSelect?.value || '';
+                    const colorwayName = selected?.dataset?.name || '';
+                    const colorwayImage = selected?.dataset?.image || '';
+                    if (!colorwayId || !colorwayName) {
+                        colorSelect?.focus();
+                        alert('Please choose a yarn color before adding this item to your cart.');
+                        return;
+                    }
+                    addToCart({
+                        name, size, fit, skeinCount, basePrice: price, image: imgUrl,
+                        yarnId: 7343, yarnName: 'I Love This Yarn!',
+                        colorwayId, colorwayName, colorwayImage
+                    });
                 });
             }
 
@@ -718,7 +921,6 @@
 
         // --- Shopping Cart & Stripe Checkout ---
         const VALID_SIZES = ['XS', 'S', 'M', 'L', 'XL', '2X'];
-        const LARGE_SIZE_SURCHARGE = 5;
         let cart = loadCart();
 
         function loadCart() {
@@ -726,7 +928,10 @@
                 const saved = JSON.parse(localStorage.getItem('cozyLoopsCart') || '[]');
                 return Array.isArray(saved) ? saved.filter(item =>
                     item && typeof item.name === 'string' && VALID_SIZES.includes(item.size) &&
-                    Number.isInteger(item.quantity) && item.quantity > 0
+                    ['Female', 'Male', 'Standard'].includes(item.fit) && Number.isFinite(Number(item.skeinCount)) && Number(item.skeinCount) > 0 &&
+                    Number.isInteger(item.quantity) && item.quantity > 0 &&
+                    Number(item.yarnId) === 7343 && typeof item.colorwayId === 'string' && item.colorwayId &&
+                    typeof item.colorwayName === 'string' && item.colorwayName
                 ) : [];
             } catch (_) {
                 return [];
@@ -738,23 +943,25 @@
             renderCart();
         }
 
-        function sizeAdjustedPrice(basePrice, size) {
-            const base = Number(basePrice);
-            return base + (['L', 'XL', '2X'].includes(size) ? LARGE_SIZE_SURCHARGE : 0);
-        }
-
         function addToCart(item) {
             if (!VALID_SIZES.includes(item.size) || !Number.isFinite(Number(item.basePrice))) return;
-            const existing = cart.find(line => line.name === item.name && line.size === item.size);
+            const existing = cart.find(line => line.name === item.name && line.size === item.size && line.fit === item.fit && line.colorwayId === item.colorwayId);
             if (existing) {
                 existing.quantity += 1;
             } else {
                 cart.push({
                     name: item.name,
                     size: item.size,
+                    fit: item.fit,
+                    skeinCount: Number(item.skeinCount),
                     quantity: 1,
                     basePrice: Number(item.basePrice),
-                    image: item.image || ''
+                    image: item.image || '',
+                    yarnId: 7343,
+                    yarnName: 'I Love This Yarn!',
+                    colorwayId: String(item.colorwayId),
+                    colorwayName: String(item.colorwayName),
+                    colorwayImage: item.colorwayImage || ''
                 });
             }
             saveCart();
@@ -777,10 +984,11 @@
         function renderCart() {
             const items = document.getElementById('cartItems');
             const count = cart.reduce((sum, item) => sum + item.quantity, 0);
-            const total = cart.reduce((sum, item) => sum + sizeAdjustedPrice(item.basePrice, item.size) * item.quantity, 0);
+            const yarnPrice = Number(yarnOptions?.yarnPrice);
+            const total = Number.isFinite(yarnPrice) ? cart.reduce((sum, item) => sum + (Number(item.basePrice) + Number(item.skeinCount) * yarnPrice) * item.quantity, 0) : null;
             document.getElementById('cartCount').textContent = count;
-            document.getElementById('cartTotal').textContent = `$${total.toFixed(2)}`;
-            document.getElementById('checkoutCartButton').disabled = cart.length === 0;
+            document.getElementById('cartTotal').textContent = total == null ? 'Loading…' : `$${total.toFixed(2)}`;
+            document.getElementById('checkoutCartButton').disabled = cart.length === 0 || total == null;
 
             if (cart.length === 0) {
                 items.innerHTML = `<div class="text-center py-16 text-theme-gray">
@@ -792,7 +1000,8 @@
             }
 
             items.innerHTML = cart.map((item, index) => {
-                const unitPrice = sizeAdjustedPrice(item.basePrice, item.size);
+                const unitPrice = Number(item.basePrice) + Number(item.skeinCount) * Number(yarnOptions?.yarnPrice || 0);
+                const yarnCost = Number(item.skeinCount) * Number(yarnOptions?.yarnPrice || 0);
                 return `<div class="border border-theme-darkblue/30 rounded-xl p-3 bg-theme-dark">
                     <div class="flex gap-3">
                         <img src="${item.image}" alt="${item.name}" class="w-20 h-20 object-cover rounded-lg bg-theme-black" onerror="this.style.display='none'">
@@ -802,7 +1011,10 @@
                                 <button type="button" onclick="removeCartItem(${index})" class="text-theme-gray hover:text-theme-purple" aria-label="Remove ${item.name}"><i class="fa-solid fa-trash"></i></button>
                             </div>
                             <p class="text-sm text-theme-gray">Size: ${item.size}</p>
-                            <p class="text-sm font-semibold text-theme-purple">$${unitPrice.toFixed(2)} each</p>
+                            <p class="text-sm text-theme-gray">Fit: ${item.fit}</p>
+                            <p class="text-sm text-theme-gray">Yarn: I Love This Yarn! — ${item.colorwayName || 'Not selected'}</p>
+                            <p class="text-sm text-theme-gray">${item.skeinCount} skein${Number(item.skeinCount) === 1 ? '' : 's'} × $${Number(yarnOptions?.yarnPrice || 0).toFixed(2)} = $${yarnCost.toFixed(2)}</p>
+                            <p class="text-sm font-semibold text-theme-purple">$${unitPrice.toFixed(2)} each including yarn</p>
                             <div class="mt-2 inline-flex items-center border border-theme-darkblue/30 rounded-lg overflow-hidden">
                                 <button type="button" onclick="changeCartQuantity(${index}, -1)" class="px-3 py-1 hover:bg-theme-black" aria-label="Decrease quantity">−</button>
                                 <span class="px-3 py-1 border-x border-theme-darkblue/30">${item.quantity}</span>
@@ -841,7 +1053,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        items: cart.map(item => ({ name: item.name, size: item.size, quantity: item.quantity }))
+                        items: cart.map(item => ({ name: item.name, size: item.size, fit: item.fit, quantity: item.quantity, yarnId: 7343, colorwayId: item.colorwayId, colorwayName: item.colorwayName }))
                     })
                 });
 
@@ -858,6 +1070,90 @@
                 button.disabled = false;
                 button.innerHTML = originalHtml;
             }
+        }
+
+        let viewerScale = 1;
+        let viewerX = 0;
+        let viewerY = 0;
+        const viewerPointers = new Map();
+        let viewerLastPinchDistance = null;
+
+        function applyViewerTransform() {
+            const image = document.getElementById('imageViewerImage');
+            image.style.transform = `translate(-50%, -50%) translate(${viewerX}px, ${viewerY}px) scale(${viewerScale})`;
+        }
+
+        function openImageViewer(src, title) {
+            if (!src) return;
+            const viewer = document.getElementById('imageViewer');
+            const image = document.getElementById('imageViewerImage');
+            document.getElementById('imageViewerTitle').textContent = title || 'Yarn image';
+            image.src = src;
+            image.alt = title || 'Yarn image';
+            resetViewer();
+            viewer.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+        }
+
+        function closeImageViewer() {
+            document.getElementById('imageViewer').classList.add('hidden');
+            viewerPointers.clear();
+            viewerLastPinchDistance = null;
+            if (document.getElementById('cartDrawer').getAttribute('aria-hidden') === 'true') {
+                document.body.classList.remove('overflow-hidden');
+            }
+        }
+
+        function zoomViewer(delta) {
+            viewerScale = Math.min(5, Math.max(1, viewerScale + delta));
+            if (viewerScale === 1) { viewerX = 0; viewerY = 0; }
+            applyViewerTransform();
+        }
+
+        function resetViewer() {
+            viewerScale = 1; viewerX = 0; viewerY = 0;
+            applyViewerTransform();
+        }
+
+        function setupImageViewerGestures() {
+            const stage = document.getElementById('imageViewerStage');
+            stage.addEventListener('wheel', (event) => {
+                event.preventDefault();
+                zoomViewer(event.deltaY < 0 ? 0.2 : -0.2);
+            }, { passive: false });
+
+            stage.addEventListener('pointerdown', (event) => {
+                stage.setPointerCapture(event.pointerId);
+                viewerPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+                stage.classList.add('cursor-grabbing');
+            });
+            stage.addEventListener('pointermove', (event) => {
+                const previous = viewerPointers.get(event.pointerId);
+                if (!previous) return;
+                const current = { x: event.clientX, y: event.clientY };
+                viewerPointers.set(event.pointerId, current);
+                const points = [...viewerPointers.values()];
+                if (points.length === 1 && viewerScale > 1) {
+                    viewerX += current.x - previous.x;
+                    viewerY += current.y - previous.y;
+                    applyViewerTransform();
+                } else if (points.length >= 2) {
+                    const distance = Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
+                    if (viewerLastPinchDistance != null) {
+                        viewerScale = Math.min(5, Math.max(1, viewerScale * (distance / viewerLastPinchDistance)));
+                        if (viewerScale === 1) { viewerX = 0; viewerY = 0; }
+                        applyViewerTransform();
+                    }
+                    viewerLastPinchDistance = distance;
+                }
+            });
+            const endPointer = (event) => {
+                viewerPointers.delete(event.pointerId);
+                viewerLastPinchDistance = null;
+                if (viewerPointers.size === 0) stage.classList.remove('cursor-grabbing');
+            };
+            stage.addEventListener('pointerup', endPointer);
+            stage.addEventListener('pointercancel', endPointer);
         }
 
         function showCheckoutStatus(message, type = 'success') {

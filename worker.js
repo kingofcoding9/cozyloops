@@ -1,6 +1,7 @@
 import { onRequestPost as createCheckout } from './functions/api/checkout.js';
 import { onRequestPost as handleWebhook } from './functions/api/webhook.js';
 import { onRequestGet as getProducts } from './functions/api/products.js';
+import { onRequestGet as getYarnOptions } from './functions/api/yarn-options.js';
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -12,6 +13,13 @@ function json(data, status = 200) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+
+    if (url.pathname === '/api/yarn-options') {
+      if (request.method !== 'GET') {
+        return json({ error: 'Method not allowed.' }, 405);
+      }
+      return getYarnOptions({ request, env, ctx });
+    }
 
     if (url.pathname === '/api/products') {
       if (request.method !== 'GET') {

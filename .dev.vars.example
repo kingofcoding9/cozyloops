@@ -1,0 +1,7 @@
+# Copy to .dev.vars for local Wrangler development only. Never commit real secrets.
+STRIPE_SECRET_KEY=sk_test_replace_me
+STRIPE_WEBHOOK_SECRET=whsec_replace_me
+STRIPE_CURRENCY=usd
+RAVELRY_USERNAME=replace_me
+RAVELRY_PASSWORD=replace_me
+YARN_PRICE=4.99

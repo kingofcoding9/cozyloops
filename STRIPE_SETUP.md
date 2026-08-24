@@ -20,6 +20,9 @@ After the Worker deployment exists, open **Cloudflare → Workers & Pages → co
 
 - `STRIPE_SECRET_KEY` — Stripe secret API key (`sk_test_...` while testing).
 - `STRIPE_WEBHOOK_SECRET` — Stripe endpoint signing secret (`whsec_...`).
+- `RAVELRY_USERNAME` — Ravelry API username.
+- `RAVELRY_PASSWORD` — Ravelry API password.
+- `YARN_PRICE` — current price per skein of I Love This Yarn! (for example `4.99`).
 
 `STRIPE_CURRENCY=usd` is already a non-secret Worker variable in `wrangler.jsonc`.
 
