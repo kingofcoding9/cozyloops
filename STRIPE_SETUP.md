@@ -1,24 +1,35 @@
-# Stripe + Cloudflare Pages setup
+# Stripe + Cloudflare Worker setup
 
-This project uses Cloudflare Pages Functions and Stripe-hosted Checkout.
-Products remain in the existing Google Sheet; Stripe Products do not need to be created manually.
-The server re-fetches the catalog and trusts the sheet price, not a price sent by the browser.
+This project deploys as a Cloudflare **Worker with Static Assets**. The Worker handles `/api/*`; `public/index.html` and `public/logo.png` are served as static assets.
 
-## Cloudflare Pages secrets
+The catalog remains the existing Google Sheet. Checkout re-fetches the trusted catalog server-side and creates Stripe Checkout line items dynamically, so Stripe Products do not need to be created manually and browser-supplied prices are never trusted.
 
-In the Cloudflare dashboard for this Pages project, add these under **Settings → Variables and Secrets** for Production (and Preview if desired):
+## Deploy
 
-- `STRIPE_SECRET_KEY` — Stripe secret API key, beginning with `sk_test_` while testing.
-- `STRIPE_WEBHOOK_SECRET` — webhook endpoint signing secret, beginning with `whsec_`.
-- `STRIPE_CURRENCY` — optional plain-text variable; defaults to `usd`.
+From the repository root:
 
-Do not put either Stripe secret into `index.html`.
+```bash
+npx wrangler deploy
+```
+
+If this repository is connected to Cloudflare Git deployments, set the deploy command to `npx wrangler deploy`. The Worker entry point is `worker.js` and the static asset directory is `public`.
+
+## Runtime secrets
+
+After the Worker deployment exists, open **Cloudflare → Workers & Pages → cozy-loops → Settings → Variables and Secrets** and add encrypted secrets:
+
+- `STRIPE_SECRET_KEY` — Stripe secret API key (`sk_test_...` while testing).
+- `STRIPE_WEBHOOK_SECRET` — Stripe endpoint signing secret (`whsec_...`).
+
+`STRIPE_CURRENCY=usd` is already a non-secret Worker variable in `wrangler.jsonc`.
+
+For local development, copy `.dev.vars.example` to `.dev.vars` and put test values there. `.dev.vars` is ignored by Git.
 
 ## Stripe webhook
 
-After the Pages deployment has a public hostname, create a Stripe webhook endpoint pointing to:
+Once deployed, create a Stripe webhook endpoint at:
 
-`https://YOUR-PAGES-DOMAIN/api/webhook`
+`https://YOUR-DOMAIN/api/webhook`
 
 Subscribe to:
 
@@ -26,16 +37,15 @@ Subscribe to:
 - `checkout.session.async_payment_succeeded`
 - `checkout.session.async_payment_failed`
 
-Copy the webhook endpoint's signing secret into Cloudflare as `STRIPE_WEBHOOK_SECRET`.
+Copy that endpoint's `whsec_...` signing secret into Cloudflare as `STRIPE_WEBHOOK_SECRET`.
 
-## Test flow
+## Verification
 
-1. Use Stripe test-mode keys.
-2. Deploy the project to Cloudflare Pages.
-3. Open Shop and click **Buy Now** on an item.
-4. Confirm Stripe Checkout shows the same name and price as the trusted sheet.
-5. Complete a Stripe test payment.
-6. Confirm the `checkout.session.completed` event succeeds in Stripe's webhook delivery log.
-7. Confirm the event appears in the Cloudflare Pages Function logs.
+1. Deploy with a Stripe test secret key.
+2. Open **Shop** and click **Buy Now**.
+3. Confirm Stripe Checkout shows the same item and price as the trusted Google Sheet.
+4. Complete a Stripe test payment.
+5. Confirm Stripe shows a successful `checkout.session.completed` webhook delivery.
+6. Confirm the event appears in Cloudflare Worker logs.
 
-The current webhook verifies and logs completed orders. Add persistent fulfillment/notifications in `functions/api/webhook.js` once an order destination (email, database, Google Sheet, etc.) is selected.
+The webhook currently verifies and logs completed orders. Persistent fulfillment/notifications can be added after choosing where orders should be stored.

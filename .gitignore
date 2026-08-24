@@ -1,0 +1,4 @@
+.dev.vars
+.wrangler/
+.omni-ai/
+node_modules/
