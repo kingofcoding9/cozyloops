@@ -545,8 +545,19 @@
             const card = document.createElement('div');
             card.className = 'product-card bg-theme-black border border-theme-darkblue/30 rounded-lg overflow-hidden flex flex-col h-full';
             
-            // Strict check based on sheet headers
-            const imgUrl = product["Picture Link"] || product.PictureLink || product.Image || `https://placehold.co/400x300/f2e5c8/d9653c?text=${encodeURIComponent(product.Name || 'Product')}`;
+            // Only use a real http(s) product image. The sheet currently contains
+            // https://example for at least one row, which is a placeholder rather than an image.
+            const rawImgUrl = product["Picture Link"] || product.PictureLink || product.Image || '';
+            let imgUrl = `https://placehold.co/400x300/f2e5c8/d9653c?text=${encodeURIComponent(product.Name || 'Product')}`;
+            try {
+                const parsedImageUrl = new URL(rawImgUrl);
+                const isPlaceholderHost = parsedImageUrl.hostname === 'example' || parsedImageUrl.hostname.endsWith('.example');
+                if (['http:', 'https:'].includes(parsedImageUrl.protocol) && !isPlaceholderHost) {
+                    imgUrl = parsedImageUrl.href;
+                }
+            } catch (_) {
+                // Missing/invalid image URLs intentionally fall back to the generated placeholder.
+            }
             const price = product.Price || product.price || 'Contact for price';
             const name = product.Name || product.name || 'Unnamed Product';
             const description = product.Description || product.description || 'No description available.';

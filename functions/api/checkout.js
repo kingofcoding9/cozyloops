@@ -94,8 +94,32 @@ export async function onRequestPost(context) {
 
   const stripeData = await stripeResponse.json();
   if (!stripeResponse.ok) {
-    console.error('Stripe Checkout error:', stripeData?.error?.message || stripeData);
-    return json({ error: 'Unable to start checkout.' }, 502);
+    const stripeError = stripeData?.error || {};
+    console.error('Stripe Checkout error:', {
+      status: stripeResponse.status,
+      type: stripeError.type,
+      code: stripeError.code,
+      message: stripeError.message,
+    });
+
+    // Give the storefront a useful but non-secret diagnostic. Never return
+    // request headers, API keys, or Stripe's raw response to the browser.
+    if (stripeResponse.status === 401 || stripeResponse.status === 403) {
+      return json({
+        error: 'Stripe rejected the server API key. Check STRIPE_SECRET_KEY in Cloudflare.',
+        code: 'stripe_auth_failed',
+      }, 502);
+    }
+
+    return json({
+      error: 'Stripe rejected the checkout configuration.',
+      code: stripeError.code || stripeError.type || 'stripe_checkout_failed',
+    }, 502);
+  }
+
+  if (!stripeData.url) {
+    console.error('Stripe Checkout response did not contain a redirect URL.', stripeData.id);
+    return json({ error: 'Stripe did not return a checkout URL.', code: 'stripe_missing_url' }, 502);
   }
 
   return json({ url: stripeData.url });
