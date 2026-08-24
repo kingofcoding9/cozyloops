@@ -139,15 +139,46 @@
             </button>
             
             <!-- Navigation Tabs -->
-            <nav class="flex space-x-6 text-sm sm:text-base font-medium text-theme-gray">
-                <button onclick="switchPage('home')" class="nav-tab active focus:outline-none" data-target="home">Home</button>
-                <button onclick="switchPage('shop')" class="nav-tab focus:outline-none" data-target="shop">Shop</button>
-                <button onclick="switchPage('custom')" class="nav-tab focus:outline-none" data-target="custom">Custom</button>
-                <button onclick="switchPage('contact')" class="nav-tab focus:outline-none" data-target="contact">Contact</button>
-                <button onclick="switchPage('about')" class="nav-tab focus:outline-none" data-target="about">About Me</button>
-            </nav>
+            <div class="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
+                <nav class="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm sm:text-base font-medium text-theme-gray">
+                    <button onclick="switchPage('home')" class="nav-tab active focus:outline-none" data-target="home">Home</button>
+                    <button onclick="switchPage('shop')" class="nav-tab focus:outline-none" data-target="shop">Shop</button>
+                    <button onclick="switchPage('custom')" class="nav-tab focus:outline-none" data-target="custom">Custom</button>
+                    <button onclick="switchPage('contact')" class="nav-tab focus:outline-none" data-target="contact">Contact</button>
+                    <button onclick="switchPage('about')" class="nav-tab focus:outline-none" data-target="about">About Me</button>
+                </nav>
+                <button type="button" onclick="openCart()" class="relative inline-flex items-center gap-2 bg-theme-black border border-theme-darkblue/30 text-theme-light px-4 py-2 rounded-full hover:border-theme-purple transition-colors" aria-label="Open shopping cart">
+                    <i class="fa-solid fa-cart-shopping text-theme-purple"></i>
+                    <span>Cart</span>
+                    <span id="cartCount" class="min-w-6 h-6 px-1.5 inline-flex items-center justify-center rounded-full bg-theme-purple text-white text-xs font-bold">0</span>
+                </button>
+            </div>
         </div>
     </header>
+
+    <!-- Shopping Cart -->
+    <div id="cartBackdrop" class="hidden fixed inset-0 bg-black/40 z-[60]" onclick="closeCart()" aria-hidden="true"></div>
+    <aside id="cartDrawer" class="fixed top-0 right-0 z-[70] h-full w-full max-w-md bg-theme-black border-l border-theme-darkblue/30 shadow-2xl translate-x-full transition-transform duration-300 flex flex-col" aria-label="Shopping cart" aria-hidden="true">
+        <div class="p-5 border-b border-theme-darkblue/30 flex items-center justify-between">
+            <div>
+                <h2 class="text-2xl font-bold text-theme-light">Your Cart</h2>
+                <p class="text-sm text-theme-gray">L, XL, and 2X add $5 per item.</p>
+            </div>
+            <button type="button" onclick="closeCart()" class="w-10 h-10 rounded-full border border-theme-darkblue/30 text-theme-gray hover:text-theme-purple" aria-label="Close cart">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div id="cartItems" class="flex-1 overflow-y-auto p-5 space-y-4"></div>
+        <div class="p-5 border-t border-theme-darkblue/30 bg-theme-dark">
+            <div class="flex items-center justify-between mb-4">
+                <span class="font-semibold text-theme-light">Estimated total</span>
+                <span id="cartTotal" class="text-xl font-bold text-theme-purple">$0.00</span>
+            </div>
+            <button id="checkoutCartButton" type="button" onclick="checkoutCart(this)" class="w-full bg-gradient-to-r from-theme-blue to-theme-purple text-white font-semibold py-3 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="fa-solid fa-lock mr-2"></i>Checkout with Stripe
+            </button>
+        </div>
+    </aside>
 
     <!-- Main Content Area -->
     <main class="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -365,6 +396,8 @@
             // Setup Search Listener
             document.getElementById('searchInput').addEventListener('input', filterProducts);
             
+            renderCart();
+
             // Show Stripe return state, if Checkout redirected back here.
             handleCheckoutReturn();
 
@@ -545,8 +578,19 @@
             const card = document.createElement('div');
             card.className = 'product-card bg-theme-black border border-theme-darkblue/30 rounded-lg overflow-hidden flex flex-col h-full';
             
-            // Strict check based on sheet headers
-            const imgUrl = product["Picture Link"] || product.PictureLink || product.Image || `https://placehold.co/400x300/f2e5c8/d9653c?text=${encodeURIComponent(product.Name || 'Product')}`;
+            // Only use a real http(s) product image. The sheet currently contains
+            // https://example for at least one row, which is a placeholder rather than an image.
+            const rawImgUrl = product["Picture Link"] || product.PictureLink || product.Image || '';
+            let imgUrl = `https://placehold.co/400x300/f2e5c8/d9653c?text=${encodeURIComponent(product.Name || 'Product')}`;
+            try {
+                const parsedImageUrl = new URL(rawImgUrl);
+                const isPlaceholderHost = parsedImageUrl.hostname === 'example' || parsedImageUrl.hostname.endsWith('.example');
+                if (['http:', 'https:'].includes(parsedImageUrl.protocol) && !isPlaceholderHost) {
+                    imgUrl = parsedImageUrl.href;
+                }
+            } catch (_) {
+                // Missing/invalid image URLs intentionally fall back to the generated placeholder.
+            }
             const price = product.Price || product.price || 'Contact for price';
             const name = product.Name || product.name || 'Unnamed Product';
             const description = product.Description || product.description || 'No description available.';
@@ -570,8 +614,19 @@
                     ${tagsHtml ? `<div class="mb-4">${tagsHtml}</div>` : ''}
                     <div class="mt-auto space-y-2">
                         ${typeof price === 'number' ? `
-                            <button type="button" data-buy-button class="w-full bg-gradient-to-r from-theme-blue to-theme-purple text-white font-semibold py-2.5 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-wait">
-                                <i class="fa-solid fa-lock mr-2"></i>Buy Now
+                            <label class="block text-sm font-medium text-theme-light">
+                                Size
+                                <select data-size-select class="mt-1 w-full bg-theme-dark border border-theme-darkblue/40 rounded-lg py-2 px-3 text-theme-light focus:outline-none focus:border-theme-purple">
+                                    <option value="XS">Extra Small (XS)</option>
+                                    <option value="S">Small (S)</option>
+                                    <option value="M" selected>Medium (M)</option>
+                                    <option value="L">Large (L) — +$5</option>
+                                    <option value="XL">Extra Large (XL) — +$5</option>
+                                    <option value="2X">2X — +$5</option>
+                                </select>
+                            </label>
+                            <button type="button" data-cart-button class="w-full bg-gradient-to-r from-theme-blue to-theme-purple text-white font-semibold py-2.5 rounded-lg hover:opacity-90 transition-opacity">
+                                <i class="fa-solid fa-cart-plus mr-2"></i>Add to Cart
                             </button>` : ''}
                         <button type="button" data-inquire-button class="w-full bg-theme-dark border border-theme-blue text-theme-blue hover:bg-theme-blue hover:text-white py-2 rounded-lg transition-colors">
                             Inquire
@@ -580,9 +635,12 @@
                 </div>
             `;
 
-            const buyButton = card.querySelector('[data-buy-button]');
-            if (buyButton) {
-                buyButton.addEventListener('click', () => startCheckout(name, buyButton));
+            const cartButton = card.querySelector('[data-cart-button]');
+            if (cartButton) {
+                cartButton.addEventListener('click', () => {
+                    const size = card.querySelector('[data-size-select]').value;
+                    addToCart({ name, size, basePrice: price, image: imgUrl });
+                });
             }
 
             card.querySelector('[data-inquire-button]').addEventListener('click', () => {
@@ -658,8 +716,122 @@
             renderCategories(filteredCategories, true);
         }
 
-        // --- Stripe Checkout ---
-        async function startCheckout(productName, button) {
+        // --- Shopping Cart & Stripe Checkout ---
+        const VALID_SIZES = ['XS', 'S', 'M', 'L', 'XL', '2X'];
+        const LARGE_SIZE_SURCHARGE = 5;
+        let cart = loadCart();
+
+        function loadCart() {
+            try {
+                const saved = JSON.parse(localStorage.getItem('cozyLoopsCart') || '[]');
+                return Array.isArray(saved) ? saved.filter(item =>
+                    item && typeof item.name === 'string' && VALID_SIZES.includes(item.size) &&
+                    Number.isInteger(item.quantity) && item.quantity > 0
+                ) : [];
+            } catch (_) {
+                return [];
+            }
+        }
+
+        function saveCart() {
+            localStorage.setItem('cozyLoopsCart', JSON.stringify(cart));
+            renderCart();
+        }
+
+        function sizeAdjustedPrice(basePrice, size) {
+            const base = Number(basePrice);
+            return base + (['L', 'XL', '2X'].includes(size) ? LARGE_SIZE_SURCHARGE : 0);
+        }
+
+        function addToCart(item) {
+            if (!VALID_SIZES.includes(item.size) || !Number.isFinite(Number(item.basePrice))) return;
+            const existing = cart.find(line => line.name === item.name && line.size === item.size);
+            if (existing) {
+                existing.quantity += 1;
+            } else {
+                cart.push({
+                    name: item.name,
+                    size: item.size,
+                    quantity: 1,
+                    basePrice: Number(item.basePrice),
+                    image: item.image || ''
+                });
+            }
+            saveCart();
+            openCart();
+        }
+
+        function changeCartQuantity(index, delta) {
+            if (!cart[index]) return;
+            cart[index].quantity += delta;
+            if (cart[index].quantity <= 0) cart.splice(index, 1);
+            saveCart();
+        }
+
+        function removeCartItem(index) {
+            if (!cart[index]) return;
+            cart.splice(index, 1);
+            saveCart();
+        }
+
+        function renderCart() {
+            const items = document.getElementById('cartItems');
+            const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+            const total = cart.reduce((sum, item) => sum + sizeAdjustedPrice(item.basePrice, item.size) * item.quantity, 0);
+            document.getElementById('cartCount').textContent = count;
+            document.getElementById('cartTotal').textContent = `$${total.toFixed(2)}`;
+            document.getElementById('checkoutCartButton').disabled = cart.length === 0;
+
+            if (cart.length === 0) {
+                items.innerHTML = `<div class="text-center py-16 text-theme-gray">
+                    <i class="fa-solid fa-basket-shopping text-4xl text-theme-darkblue mb-4"></i>
+                    <p class="font-medium">Your cart is empty.</p>
+                    <button type="button" onclick="closeCart(); switchPage('shop')" class="mt-4 text-theme-purple hover:underline">Browse the shop</button>
+                </div>`;
+                return;
+            }
+
+            items.innerHTML = cart.map((item, index) => {
+                const unitPrice = sizeAdjustedPrice(item.basePrice, item.size);
+                return `<div class="border border-theme-darkblue/30 rounded-xl p-3 bg-theme-dark">
+                    <div class="flex gap-3">
+                        <img src="${item.image}" alt="${item.name}" class="w-20 h-20 object-cover rounded-lg bg-theme-black" onerror="this.style.display='none'">
+                        <div class="min-w-0 flex-1">
+                            <div class="flex justify-between gap-2">
+                                <h3 class="font-bold text-theme-light truncate">${item.name}</h3>
+                                <button type="button" onclick="removeCartItem(${index})" class="text-theme-gray hover:text-theme-purple" aria-label="Remove ${item.name}"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                            <p class="text-sm text-theme-gray">Size: ${item.size}</p>
+                            <p class="text-sm font-semibold text-theme-purple">$${unitPrice.toFixed(2)} each</p>
+                            <div class="mt-2 inline-flex items-center border border-theme-darkblue/30 rounded-lg overflow-hidden">
+                                <button type="button" onclick="changeCartQuantity(${index}, -1)" class="px-3 py-1 hover:bg-theme-black" aria-label="Decrease quantity">−</button>
+                                <span class="px-3 py-1 border-x border-theme-darkblue/30">${item.quantity}</span>
+                                <button type="button" onclick="changeCartQuantity(${index}, 1)" class="px-3 py-1 hover:bg-theme-black" aria-label="Increase quantity">+</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function openCart() {
+            document.getElementById('cartBackdrop').classList.remove('hidden');
+            const drawer = document.getElementById('cartDrawer');
+            drawer.classList.remove('translate-x-full');
+            drawer.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('overflow-hidden');
+        }
+
+        function closeCart() {
+            document.getElementById('cartBackdrop').classList.add('hidden');
+            const drawer = document.getElementById('cartDrawer');
+            drawer.classList.add('translate-x-full');
+            drawer.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('overflow-hidden');
+        }
+
+        async function checkoutCart(button) {
+            if (cart.length === 0) return;
             const originalHtml = button.innerHTML;
             button.disabled = true;
             button.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Opening checkout...';
@@ -668,7 +840,9 @@
                 const response = await fetch('/api/checkout', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ productName })
+                    body: JSON.stringify({
+                        items: cart.map(item => ({ name: item.name, size: item.size, quantity: item.quantity }))
+                    })
                 });
 
                 const data = await response.json().catch(() => ({}));
@@ -679,6 +853,7 @@
                 window.location.assign(data.url);
             } catch (error) {
                 console.error('Checkout error:', error);
+                closeCart();
                 showCheckoutStatus(error.message || 'Unable to start checkout. Please try again.', 'error');
                 button.disabled = false;
                 button.innerHTML = originalHtml;
@@ -697,6 +872,8 @@
             const params = new URLSearchParams(window.location.search);
             const checkout = params.get('checkout');
             if (checkout === 'success') {
+                cart = [];
+                saveCart();
                 showCheckoutStatus('Payment received — thank you! Your order has been submitted.');
                 history.replaceState({}, '', window.location.pathname);
             } else if (checkout === 'cancelled') {
