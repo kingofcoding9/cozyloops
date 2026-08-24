@@ -1,7 +1,7 @@
 import { getCatalog } from '../_lib/catalog.js';
 import { getILoveThisYarnOptions } from '../_lib/ravelry.js';
 
-const VALID_SIZES = new Set(['XS', 'S', 'M', 'L', 'XL', '2X']);
+const VALID_SIZES = new Set(['XS', 'S', 'M', 'L', 'XL', '2X', 'ONE_SIZE']);
 const VALID_FITS = new Set(['Female', 'Male', 'Standard']);
 const MAX_CART_LINES = 30;
 const MAX_QUANTITY_PER_LINE = 20;
@@ -48,6 +48,42 @@ const SIZE_SKEIN_COLUMNS = {
   '2X': '2X Skein Count',
 };
 
+const AGE_SIZE_VALUES = {
+  XS: 2,
+  S: 4,
+  M: 6,
+  L: 8,
+  XL: 10,
+  '2X': 12,
+};
+
+function productAgeRange(product) {
+  const text = `${product?.Description || ''} ${product?.['Sizes Available'] || ''}`;
+  const match = text.match(/(?:sizes?|ages?)\s*(\d+)\s*[-–]\s*(\d+)(?:\s*in\s*ages)?/i);
+  return match ? { min: Number(match[1]), max: Number(match[2]) } : null;
+}
+
+function productSizingMode(product) {
+  const name = String(product?.Name || '').trim().toLowerCase();
+  const details = `${name} ${product?.['Product Type'] || product?.ProductType || product?.Type || ''} ${product?.Tags || product?.tags || ''}`.toLowerCase();
+  const noSize = name.includes('toboggan') || name.includes('scarf') || name.includes('winter set') ||
+    name.includes('granny square cardigan') || name.includes('baby blanket');
+  if (noSize) return 'none';
+  if (details.includes('sweater') && /\b(child|children|kid|kids|youth)\b/.test(details)) return 'age';
+  return 'standard';
+}
+
+function customerSizeLabel(product, size) {
+  const mode = productSizingMode(product);
+  if (mode === 'none') return '';
+  if (mode === 'age') return AGE_SIZE_VALUES[size] ? `${AGE_SIZE_VALUES[size]} years` : size;
+  return size;
+}
+
+function customerChoosesColor(product) {
+  return !String(product?.Name || '').toLowerCase().includes('cardigan');
+}
+
 function parseAvailableSizes(value) {
   const raw = String(value || '').trim();
   if (!raw) return null;
@@ -60,9 +96,17 @@ function parseAvailableSizes(value) {
 }
 
 function getSkeinConfiguration(product, requestedSize, requestedFit) {
-  const sizeSpecific = positiveNumber(product[SIZE_SKEIN_COLUMNS[requestedSize]]);
+  const sizingMode = productSizingMode(product);
+  if (sizingMode === 'none' && requestedSize !== 'ONE_SIZE') return null;
+  if (sizingMode !== 'none' && requestedSize === 'ONE_SIZE') return null;
+  if (sizingMode === 'age') {
+    const age = AGE_SIZE_VALUES[requestedSize];
+    const range = productAgeRange(product);
+    if (!age || (range && (age < range.min || age > range.max))) return null;
+  }
+  const sizeSpecific = sizingMode === 'none' ? null : positiveNumber(product[SIZE_SKEIN_COLUMNS[requestedSize]]);
   const generalFallback = positiveNumber(product['Yarn Skein Count']);
-  const sizeSkeins = sizeSpecific ?? generalFallback;
+  const sizeSkeins = sizingMode === 'none' ? generalFallback : (sizeSpecific ?? generalFallback);
   if (sizeSkeins == null) return null;
 
   const femaleAdjustment = nonNegativeNumber(product.Female);
@@ -76,7 +120,7 @@ function getSkeinConfiguration(product, requestedSize, requestedFit) {
     else return null;
 
     const availableSizes = parseAvailableSizes(product[`${requestedFit} Sizes Available`]);
-    if (availableSizes && !availableSizes.has(requestedSize)) return null;
+    if (sizingMode !== 'none' && availableSizes && !availableSizes.has(requestedSize)) return null;
   } else if (requestedFit !== 'Standard') {
     return null;
   }
@@ -171,14 +215,18 @@ export async function onRequestPost({ request, env }) {
       return json({ error: 'A product in your cart has an invalid price.' }, 502);
     }
 
+    const sizingMode = productSizingMode(product);
     const skeinConfig = getSkeinConfiguration(product, requested.size, requested.fit);
     if (!skeinConfig || !Number.isInteger(skeinConfig.skeins) || skeinConfig.skeins < 1) {
       return json({ error: `Yarn quantity is not configured for ${product.Name} (${requested.size}, ${requested.fit}).` }, 400);
     }
 
-    const colorway = colorwaysById.get(requested.colorwayId);
-    if (!colorway || colorway.name !== requested.colorwayName) {
-      return json({ error: `The selected yarn color for ${product.Name} is no longer available.` }, 400);
+    const allowColorChoice = customerChoosesColor(product);
+    const colorway = allowColorChoice
+      ? colorwaysById.get(requested.colorwayId)
+      : (ravelryOptions.colorways || [])[0];
+    if (!colorway || (allowColorChoice && colorway.name !== requested.colorwayName)) {
+      return json({ error: allowColorChoice ? `The selected yarn color for ${product.Name} is no longer available.` : `The yarn for ${product.Name} is temporarily unavailable.` }, 400);
     }
 
     verifiedLines.push({
@@ -187,13 +235,16 @@ export async function onRequestPost({ request, env }) {
       image: String(product['Picture Link'] || '').trim(),
       baseUnitAmount: Math.round(basePrice * 100),
       size: requested.size,
+      sizeLabel: customerSizeLabel(product, requested.size),
+      sizingMode,
       fit: skeinConfig.fit,
       sizeSkeins: skeinConfig.sizeSkeins,
       genderSkeins: skeinConfig.genderSkeins,
       skeinsPerItem: skeinConfig.skeins,
       quantity: requested.quantity,
       yarnName: 'I Love This Yarn!',
-      colorwayId: requested.colorwayId,
+      colorChoiceMode: allowColorChoice ? 'customer' : 'fixed',
+      colorwayId: String(colorway.id),
       colorwayName: colorway.name,
       yarnImage: String(colorway.image || ravelryOptions?.yarn?.photos?.[0] || ''),
     });
@@ -214,9 +265,10 @@ export async function onRequestPost({ request, env }) {
     params.set(`${productPrefix}[quantity]`, String(line.quantity));
     params.set(`${productPrefix}[price_data][currency]`, currency);
     params.set(`${productPrefix}[price_data][unit_amount]`, String(line.baseUnitAmount));
-    params.set(`${productPrefix}[price_data][product_data][name]`, `${line.name} — Size ${line.size}`);
+    const selectionSuffix = line.sizingMode === 'none' ? '' : ` — ${line.sizingMode === 'age' ? 'Age' : 'Size'} ${line.sizeLabel}`;
+    params.set(`${productPrefix}[price_data][product_data][name]`, `${line.name}${selectionSuffix}`);
 
-    const productDescription = [line.description, `Fit: ${line.fit}`, `Color: ${line.colorwayName}`]
+    const productDescription = [line.description, line.sizingMode === 'none' ? '' : `${line.sizingMode === 'age' ? 'Age' : 'Size'}: ${line.sizeLabel}`, `Fit: ${line.fit}`, line.colorChoiceMode === 'customer' ? `Color: ${line.colorwayName}` : 'Yarn color selected by Cozy Loops']
       .filter(Boolean).join(' • ').slice(0, 500);
     params.set(`${productPrefix}[price_data][product_data][description]`, productDescription);
     const productImage = safeStripeImage(line.image) || `https://placehold.co/400x300/f2e5c8/d9653c?text=${encodeURIComponent(line.name)}`;
@@ -227,12 +279,14 @@ export async function onRequestPost({ request, env }) {
     params.set(`${yarnPrefix}[quantity]`, String(totalSkeins));
     params.set(`${yarnPrefix}[price_data][currency]`, currency);
     params.set(`${yarnPrefix}[price_data][unit_amount]`, String(yarnUnitAmount));
-    params.set(`${yarnPrefix}[price_data][product_data][name]`, `${line.yarnName} — ${line.colorwayName}`);
-    params.set(`${yarnPrefix}[price_data][product_data][description]`, `Yarn for ${line.name} • ${line.sizeSkeins} size + ${line.genderSkeins} gender = ${line.skeinsPerItem} skein(s) per item • ${line.fit} fit`.slice(0, 500));
+    params.set(`${yarnPrefix}[price_data][product_data][name]`, line.colorChoiceMode === 'customer' ? `${line.yarnName} — ${line.colorwayName}` : `${line.yarnName} — Cardigan yarn`);
+    const yarnSelection = line.sizingMode === 'none' ? 'no size selection' : `${line.sizeLabel} ${line.sizingMode === 'age' ? 'age' : 'size'}`;
+    params.set(`${yarnPrefix}[price_data][product_data][description]`, `Yarn for ${line.name} • ${line.sizeSkeins} base + ${line.genderSkeins} gender = ${line.skeinsPerItem} skein(s) per item • ${yarnSelection} • ${line.fit} fit`.slice(0, 500));
     const yarnImage = safeStripeImage(line.yarnImage);
     if (yarnImage) params.set(`${yarnPrefix}[price_data][product_data][images][0]`, yarnImage);
 
-    params.set(`metadata[line_${cartIndex + 1}]`, `${line.name} | ${line.size} | ${line.fit} | ${line.sizeSkeins}+${line.genderSkeins}=${line.skeinsPerItem} skeins | ${line.colorwayName}`.slice(0, 500));
+    const metadataSelection = line.sizingMode === 'none' ? 'No size' : `${line.sizingMode === 'age' ? 'Age' : 'Size'} ${line.sizeLabel}`;
+    params.set(`metadata[line_${cartIndex + 1}]`, `${line.name} | ${metadataSelection} | ${line.fit} | ${line.sizeSkeins}+${line.genderSkeins}=${line.skeinsPerItem} skeins | ${line.colorwayName}`.slice(0, 500));
   });
 
   let stripeResponse;
