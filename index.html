@@ -3,719 +3,710 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cozy Loops by Kayce | Handcrafted Crochet & Knitwear</title>
-    <meta name="description" content="Handcrafted beanies, scarves, and crochet apparel by Kayce. Quality, cozy, and made with love.">
-    
-    <!-- Tailwind CSS -->
+    <title>Cozy Loops</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="apple-touch-icon" href="logo.png">
+    <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Tailwind Config for Custom Brand Colors/Fonts -->
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        brand: {
-                            50: '#faf6f3',
-                            100: '#f5ebe4',
-                            500: '#d97757',
-                            800: '#5c3826',
-                            900: '#422518',
+                        theme: {
+                            black: '#fbf6e8',    // logo cream background
+                            dark: '#f2e5c8',     // warm yarn-cream surface
+                            blue: '#4f8588',     // logo teal yarn
+                            darkblue: '#9b6928', // logo golden ochre
+                            purple: '#d9653c',   // logo coral-orange yarn
+                            darkpurple: '#3b2418',// deep outline brown
+                            light: '#3b2418',    // deep brown primary text
+                            gray: '#76533a'      // warm brown secondary text
                         }
                     },
                     fontFamily: {
-                        serif: ['"Playfair Display"', 'serif'],
-                        sans: ['"Inter"', 'sans-serif'],
+                        sans: ['Inter', 'sans-serif'],
                     }
                 }
             }
         }
     </script>
-
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
-    
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
     <style>
-        /* Custom Utilities and Transitions */
-        html { scroll-behavior: smooth; }
-        body { font-family: 'Inter', sans-serif; background-color: #faf6f3; color: #422518; }
-        h1, h2, h3, h4, h5, h6, .font-serif { font-family: 'Playfair Display', serif; }
+        /* Custom Styles for Tabs and Transitions */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
         
-        .view-section { display: none; animation: fadeIn 0.4s ease-in-out; }
-        .view-section.active { display: block; }
+        body {
+            background-color: #fbf6e8; /* logo cream */
+            color: #3b2418; /* deep yarn-outline brown */
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .page-content {
+            display: none;
+            animation: fadeIn 0.4s ease-in-out;
+        }
         
+        .page-content.active {
+            display: block;
+        }
+
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Cart Drawer Animation */
-        #cart-drawer { transform: translateX(100%); transition: transform 0.3s ease-in-out; }
-        #cart-drawer.open { transform: translateX(0); }
+        /* Nav Tab Styling */
+        .nav-tab {
+            position: relative;
+            transition: all 0.3s ease;
+        }
         
-        /* Mobile Menu Animation */
-        #mobile-menu { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-in-out; }
-        #mobile-menu.open { max-height: 300px; }
+        .nav-tab::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -4px;
+            left: 0;
+            background: linear-gradient(to right, #4f8588, #d9653c);
+            transition: width 0.3s ease;
+        }
 
-        .product-card:hover .product-img { transform: scale(1.05); }
-        .product-img { transition: transform 0.5s ease; }
+        .nav-tab:hover::after, .nav-tab.active::after {
+            width: 100%;
+        }
+
+        .nav-tab.active {
+            color: #d9653c; /* logo coral accent */
+            font-weight: 600;
+        }
+
+        /* Shop Category Accordion */
+        .category-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out;
+        }
+        
+        .category-content.expanded {
+            max-height: 5000px; /* Arbitrary large number to allow full expansion */
+            transition: max-height 0.6s ease-in;
+        }
+        
+        .chevron {
+            transition: transform 0.3s ease;
+        }
+        
+        .chevron.rotated {
+            transform: rotate(180deg);
+        }
+
+        /* Product Card Hover Effect */
+        .product-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(79, 133, 136, 0.24); /* teal yarn shadow */
+        }
+        
+        /* Loading Spinner */
+        .loader {
+            border: 4px solid rgba(155, 105, 40, 0.18);
+            border-left-color: #d9653c;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="antialiased flex flex-col min-h-screen">
+<body class="min-h-screen flex flex-col">
 
-    <!-- Navigation -->
-    <header class="bg-brand-50 border-b border-brand-100 sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-20">
-                
-                <!-- Logo -->
-                <div class="flex-shrink-0 flex items-center cursor-pointer" onclick="navigateTo('home')">
-                    <span class="font-serif italic text-2xl md:text-3xl text-brand-800 font-semibold tracking-tight">Cozy Loops<span class="text-brand-500 text-lg md:text-xl not-italic ml-2">by Kayce</span></span>
-                </div>
-
-                <!-- Desktop Nav -->
-                <nav class="hidden md:flex space-x-8 items-center">
-                    <button onclick="navigateTo('home')" class="nav-link text-brand-800 hover:text-brand-500 font-medium transition-colors border-b-2 border-transparent hover:border-brand-500 pb-1">Home</button>
-                    <button onclick="navigateTo('shop')" class="nav-link text-brand-800 hover:text-brand-500 font-medium transition-colors border-b-2 border-transparent hover:border-brand-500 pb-1">Shop</button>
-                    <button onclick="navigateTo('about')" class="nav-link text-brand-800 hover:text-brand-500 font-medium transition-colors border-b-2 border-transparent hover:border-brand-500 pb-1">About</button>
-                    <button onclick="navigateTo('contact')" class="nav-link text-brand-800 hover:text-brand-500 font-medium transition-colors border-b-2 border-transparent hover:border-brand-500 pb-1">Contact</button>
-                </nav>
-
-                <!-- Icons (Cart & Mobile Menu Toggle) -->
-                <div class="flex items-center space-x-5">
-                    <button onclick="toggleCart()" class="text-brand-800 hover:text-brand-500 relative transition-colors">
-                        <i class="fa-solid fa-bag-shopping text-xl"></i>
-                        <span id="cart-count" class="absolute -top-2 -right-2 bg-brand-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-sm">0</span>
-                    </button>
-                    
-                    <button onclick="toggleMobileMenu()" class="md:hidden text-brand-800 hover:text-brand-500 focus:outline-none">
-                        <i class="fa-solid fa-bars text-2xl"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Mobile Nav -->
-        <div id="mobile-menu" class="md:hidden bg-white border-t border-brand-100 shadow-lg absolute w-full z-30">
-            <div class="px-4 pt-2 pb-4 space-y-1">
-                <button onclick="navigateTo('home'); toggleMobileMenu();" class="block w-full text-left px-3 py-3 text-brand-800 hover:bg-brand-50 font-medium rounded-md">Home</button>
-                <button onclick="navigateTo('shop'); toggleMobileMenu();" class="block w-full text-left px-3 py-3 text-brand-800 hover:bg-brand-50 font-medium rounded-md">Shop</button>
-                <button onclick="navigateTo('about'); toggleMobileMenu();" class="block w-full text-left px-3 py-3 text-brand-800 hover:bg-brand-50 font-medium rounded-md">About</button>
-                <button onclick="navigateTo('contact'); toggleMobileMenu();" class="block w-full text-left px-3 py-3 text-brand-800 hover:bg-brand-50 font-medium rounded-md">Contact</button>
-            </div>
+    <!-- Header & Navigation -->
+    <header class="bg-theme-dark shadow-md shadow-theme-purple/20 sticky top-0 z-50">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row justify-between items-center">
+            
+            <!-- Logo area -->
+            <button type="button" class="mb-4 sm:mb-0 cursor-pointer rounded-xl focus:outline-none focus:ring-2 focus:ring-theme-blue/60" onclick="switchPage('home')" aria-label="Cozy Loops home">
+                <img src="logo.png" alt="Cozy Loops" class="h-16 sm:h-20 w-auto max-w-[220px] sm:max-w-[270px] object-contain">
+            </button>
+            
+            <!-- Navigation Tabs -->
+            <nav class="flex space-x-6 text-sm sm:text-base font-medium text-theme-gray">
+                <button onclick="switchPage('home')" class="nav-tab active focus:outline-none" data-target="home">Home</button>
+                <button onclick="switchPage('shop')" class="nav-tab focus:outline-none" data-target="shop">Shop</button>
+                <button onclick="switchPage('custom')" class="nav-tab focus:outline-none" data-target="custom">Custom</button>
+                <button onclick="switchPage('contact')" class="nav-tab focus:outline-none" data-target="contact">Contact</button>
+                <button onclick="switchPage('about')" class="nav-tab focus:outline-none" data-target="about">About Me</button>
+            </nav>
         </div>
     </header>
 
     <!-- Main Content Area -->
-    <main class="flex-grow flex flex-col">
+    <main class="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
-        <!-- HOME VIEW -->
-        <section id="view-home" class="view-section active flex-grow">
-            <!-- Hero Section -->
-            <div class="relative bg-brand-800 text-white overflow-hidden">
-                <div class="absolute inset-0">
-                    <img src="https://placehold.co/1920x1080/422518/d97757?text=Cozy+Crochet+Textures" alt="Crochet Background" class="w-full h-full object-cover opacity-40">
+        <!-- HOME PAGE -->
+        <section id="home" class="page-content active">
+            <div class="text-center max-w-3xl mx-auto py-12">
+                <h1 class="text-5xl font-extrabold mb-6">
+                    <span class="text-theme-light">Handcrafted Comfort by</span><br/>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-theme-blue to-theme-purple">Cozy Loops</span>
+                </h1>
+                <p class="text-lg text-theme-gray mb-8">
+                    Discover unique, high-quality, and handcrafted items made with love. From cozy wearables to charming accessories, find your perfect loop today.
+                </p>
+                <div class="flex justify-center space-x-4">
+                    <button onclick="switchPage('shop')" class="bg-gradient-to-r from-theme-blue to-theme-purple text-white px-8 py-3 rounded-full font-semibold hover:opacity-90 transition-opacity shadow-lg shadow-theme-purple/30">
+                        Explore Shop
+                    </button>
+                    <button onclick="switchPage('custom')" class="border border-theme-blue text-theme-blue px-8 py-3 rounded-full font-semibold hover:bg-theme-blue/10 transition-colors">
+                        Custom Orders
+                    </button>
                 </div>
-                <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32 lg:py-48 flex flex-col items-center text-center">
-                    <h1 class="font-serif text-4xl md:text-5xl lg:text-7xl mb-6 tracking-wide text-brand-50">Handcrafted Comfort</h1>
-                    <p class="text-lg md:text-xl font-light mb-10 max-w-2xl text-brand-100">Wrap yourself in warmth with bespoke beanies, scarves, and custom crochet apparel made with love and premium yarns.</p>
-                    <button onclick="navigateTo('shop')" class="bg-brand-500 hover:bg-brand-500/90 text-white px-8 py-4 rounded-full font-medium tracking-wide transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1">Shop The Collection</button>
+            </div>
+            
+            <!-- Featured placeholder -->
+            <div class="mt-16 bg-theme-dark rounded-2xl p-8 border border-theme-darkblue text-center">
+                <i class="fa-solid fa-star text-4xl text-theme-purple mb-4"></i>
+                <h3 class="text-2xl font-bold mb-2">New Arrivals Weekly</h3>
+                <p class="text-theme-gray">Check back often or follow us to see the latest creations.</p>
+            </div>
+        </section>
+
+        <!-- SHOP PAGE -->
+        <section id="shop" class="page-content">
+            <div class="mb-8 flex flex-col md:flex-row justify-between items-center gap-4">
+                <h2 class="text-3xl font-bold text-theme-purple border-b-2 border-theme-blue pb-2 inline-block">Shop Collection</h2>
+                
+                <!-- Filters and Search -->
+                <div class="w-full md:w-2/3 flex flex-col sm:flex-row gap-3 items-end md:justify-end">
+                    
+                    <!-- Type Filter Dropdown -->
+                    <div class="w-full sm:w-auto relative">
+                        <select id="typeFilter" onchange="filterProducts()" class="w-full appearance-none bg-theme-dark border border-theme-darkblue rounded-lg py-2 pl-4 pr-10 text-sm focus:outline-none focus:border-theme-purple focus:ring-1 focus:ring-theme-purple transition-colors text-theme-light">
+                            <option value="">All Types</option>
+                            <!-- Options populated dynamically -->
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                            <svg class="w-4 h-4 text-theme-gray" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                    </div>
+
+                    <!-- Tag Filter Dropdown -->
+                    <div class="w-full sm:w-auto relative">
+                        <select id="tagFilter" onchange="filterProducts()" class="w-full appearance-none bg-theme-dark border border-theme-darkblue rounded-lg py-2 pl-4 pr-10 text-sm focus:outline-none focus:border-theme-purple focus:ring-1 focus:ring-theme-purple transition-colors text-theme-light">
+                            <option value="">All Tags</option>
+                            <!-- Options populated dynamically -->
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                            <svg class="w-4 h-4 text-theme-gray" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                    </div>
+
+                    <!-- Search Bar -->
+                    <div class="w-full sm:w-1/2 relative">
+                        <input type="text" id="searchInput" placeholder="Search products..." 
+                            class="w-full bg-theme-dark border border-theme-darkblue rounded-lg py-2 pl-4 pr-10 text-sm focus:outline-none focus:border-theme-purple focus:ring-1 focus:ring-theme-purple transition-colors text-theme-light">
+                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-theme-gray" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Featured Categories (Static representation) -->
-            <div class="py-20 bg-brand-50">
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div class="text-center mb-16">
-                        <h2 class="font-serif text-3xl md:text-4xl text-brand-900 mb-4">Explore by Category</h2>
-                        <div class="w-24 h-1 bg-brand-500 mx-auto"></div>
+            <!-- Loading Indicator -->
+            <div id="shopLoader" class="flex flex-col items-center justify-center py-20">
+                <div class="loader mb-4"></div>
+                <p class="text-theme-gray">Loading latest products from database...</p>
+            </div>
+            
+            <div id="shopError" class="hidden bg-red-900/50 border border-red-500 text-red-200 p-4 rounded-lg mb-6 text-center">
+                Failed to load products. Please ensure the Google Apps Script is accessible and configured correctly.
+            </div>
+
+            <!-- Product Categories Container -->
+            <div id="shopContainer" class="hidden space-y-6">
+                <!-- Categories will be injected here by JS -->
+            </div>
+        </section>
+
+        <!-- CUSTOM PAGE -->
+        <section id="custom" class="page-content">
+            <div class="max-w-4xl mx-auto">
+                <h2 class="text-3xl font-bold text-theme-blue border-b-2 border-theme-purple pb-2 inline-block mb-6">Custom Orders</h2>
+                
+                <div class="bg-theme-dark p-8 rounded-2xl border border-theme-darkblue flex flex-col md:flex-row gap-8 items-center">
+                    <div class="md:w-1/2">
+                        <i class="fa-solid fa-wand-magic-sparkles text-5xl text-theme-purple mb-4"></i>
+                        <h3 class="text-2xl font-semibold mb-4">Bring Your Idea to Life</h3>
+                        <p class="text-theme-gray mb-4">
+                            Don't see exactly what you're looking for? I love creating custom pieces tailored to your specific colors, sizes, and ideas.
+                        </p>
+                        <ul class="text-theme-light space-y-2 mb-6">
+                            <li><i class="fa-solid fa-check text-theme-blue mr-2"></i> Choose your own colors</li>
+                            <li><i class="fa-solid fa-check text-theme-blue mr-2"></i> Custom sizing available</li>
+                            <li><i class="fa-solid fa-check text-theme-blue mr-2"></i> Unique designs just for you</li>
+                        </ul>
                     </div>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <!-- Category 1 -->
-                        <div class="group relative rounded-xl overflow-hidden cursor-pointer shadow-md" onclick="navigateTo('shop', 'beanies')">
-                            <img src="https://placehold.co/600x800/e5e5e5/5c3826?text=Beanies" alt="Beanies" class="w-full h-96 object-cover transform group-hover:scale-105 transition-transform duration-500">
-                            <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-8">
-                                <h3 class="font-serif text-3xl text-white mb-2">Beanies</h3>
-                                <p class="text-brand-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300">Shop Now <i class="fa-solid fa-arrow-right ml-2"></i></p>
-                            </div>
-                        </div>
-                        <!-- Category 2 -->
-                        <div class="group relative rounded-xl overflow-hidden cursor-pointer shadow-md" onclick="navigateTo('shop', 'scarves')">
-                            <img src="https://placehold.co/600x800/e5e5e5/5c3826?text=Scarves" alt="Scarves" class="w-full h-96 object-cover transform group-hover:scale-105 transition-transform duration-500">
-                            <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-8">
-                                <h3 class="font-serif text-3xl text-white mb-2">Scarves</h3>
-                                <p class="text-brand-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300">Shop Now <i class="fa-solid fa-arrow-right ml-2"></i></p>
-                            </div>
-                        </div>
-                        <!-- Category 3 -->
-                        <div class="group relative rounded-xl overflow-hidden cursor-pointer shadow-md" onclick="navigateTo('shop', 'apparel')">
-                            <img src="https://placehold.co/600x800/e5e5e5/5c3826?text=Apparel" alt="Apparel" class="w-full h-96 object-cover transform group-hover:scale-105 transition-transform duration-500">
-                            <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-8">
-                                <h3 class="font-serif text-3xl text-white mb-2">Apparel</h3>
-                                <p class="text-brand-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300">Shop Now <i class="fa-solid fa-arrow-right ml-2"></i></p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Value Proposition -->
-            <div class="py-20 bg-white">
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid md:grid-cols-3 gap-12 text-center">
-                    <div>
-                        <div class="w-16 h-16 bg-brand-100 rounded-full flex items-center justify-center mx-auto mb-6 text-brand-500 text-2xl">
-                            <i class="fa-solid fa-hand-holding-heart"></i>
-                        </div>
-                        <h3 class="font-serif text-xl font-semibold mb-3">Handmade with Love</h3>
-                        <p class="text-gray-600">Every single piece is meticulously crafted by hand, ensuring unique character and exceptional quality.</p>
-                    </div>
-                    <div>
-                        <div class="w-16 h-16 bg-brand-100 rounded-full flex items-center justify-center mx-auto mb-6 text-brand-500 text-2xl">
-                            <i class="fa-solid fa-leaf"></i>
-                        </div>
-                        <h3 class="font-serif text-xl font-semibold mb-3">Premium Yarns</h3>
-                        <p class="text-gray-600">Sourcing only the softest, most durable, and ethically produced yarns for ultimate comfort and longevity.</p>
-                    </div>
-                    <div>
-                        <div class="w-16 h-16 bg-brand-100 rounded-full flex items-center justify-center mx-auto mb-6 text-brand-500 text-2xl">
-                            <i class="fa-solid fa-gift"></i>
-                        </div>
-                        <h3 class="font-serif text-xl font-semibold mb-3">Custom Orders</h3>
-                        <p class="text-gray-600">Have a specific color or style in mind? I accept custom commissions to bring your cozy vision to life.</p>
+                    <div class="md:w-1/2 bg-theme-black p-6 rounded-xl border border-theme-darkblue/30 w-full">
+                        <h4 class="text-xl font-medium text-theme-purple mb-4">Start a Custom Request</h4>
+                        <p class="text-sm text-theme-gray mb-4">Use the contact form and mention "Custom Request" in your message, or email directly to discuss pricing and timelines.</p>
+                        <button onclick="switchPage('contact')" class="w-full bg-theme-blue hover:bg-theme-darkblue text-white py-2 rounded-lg transition-colors">
+                            Go to Contact Form
+                        </button>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- SHOP VIEW -->
-        <section id="view-shop" class="view-section flex-grow py-12">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- CONTACT PAGE -->
+        <section id="contact" class="page-content">
+            <div class="max-w-2xl mx-auto">
+                <h2 class="text-3xl font-bold text-theme-purple border-b-2 border-theme-blue pb-2 inline-block mb-6">Get in Touch</h2>
                 
-                <div class="text-center mb-12">
-                    <h1 class="font-serif text-4xl text-brand-900 mb-4">The Collection</h1>
-                    <p class="text-gray-600 max-w-2xl mx-auto">Browse our current selection of ready-to-ship handmade goods. Filter by category to find exactly what you're looking for.</p>
-                </div>
-
-                <!-- Filters -->
-                <div class="flex flex-wrap justify-center gap-4 mb-12" id="shop-filters">
-                    <!-- Buttons are dynamically injected here via JS based on Google Sheets data -->
-                </div>
-
-                <!-- Product Grid -->
-                <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                    <!-- Products injected via JS -->
-                </div>
-
-            </div>
-        </section>
-
-        <!-- ABOUT VIEW -->
-        <section id="view-about" class="view-section flex-grow py-16 bg-white">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="grid md:grid-cols-2 gap-16 items-center">
-                    <div class="relative">
-                        <img src="https://placehold.co/800x1000/e5e5e5/5c3826?text=Kayce+Crocheting" alt="Kayce Crocheting" class="rounded-lg shadow-xl w-full">
-                        <div class="absolute -bottom-6 -right-6 bg-brand-500 text-white p-8 rounded-lg shadow-lg hidden lg:block">
-                            <p class="font-serif text-2xl italic">"Stitching joy into every loop."</p>
-                        </div>
-                    </div>
-                    <div>
-                        <h2 class="font-serif text-4xl text-brand-900 mb-6">Meet Kayce</h2>
-                        <div class="w-16 h-1 bg-brand-500 mb-8"></div>
-                        <div class="space-y-6 text-gray-700 leading-relaxed text-lg">
-                            <p>Hi, I'm Kayce! My journey with yarn began years ago on a cold winter evening. What started as a hobby to make gifts for friends and family quickly spiraled into a deep-rooted passion for textile arts and design.</p>
-                            <p>At Cozy Loops, I believe that clothing and accessories should do more than just look good—they should make you feel comforted, confident, and warm. That's why I hand-select every skein of yarn, prioritizing softness, durability, and sustainable practices wherever possible.</p>
-                            <p>Whether you're picking up a chunky beanie for the slopes or a delicate crochet top for the summer festival season, know that hours of careful planning, counting stitches, and genuine love went into creating your piece.</p>
-                            <p>Thank you for supporting slow fashion and handmade art.</p>
-                        </div>
-                        <div class="mt-10">
-                            <img src="https://placehold.co/200x80/ffffff/000000?text=Kayce's+Signature" alt="Kayce Signature" class="opacity-70">
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- CONTACT VIEW -->
-        <section id="view-contact" class="view-section flex-grow py-16">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="max-w-3xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
-                    <div class="grid md:grid-cols-5 h-full">
-                        <!-- Contact Info -->
-                        <div class="bg-brand-800 text-white p-10 md:col-span-2 flex flex-col justify-between">
-                            <div>
-                                <h2 class="font-serif text-3xl mb-4">Get in Touch</h2>
-                                <p class="text-brand-100 mb-8 font-light text-sm">Have a question about an order, sizing, or a custom request? Send me a message!</p>
-                                
-                                <div class="space-y-6">
-                                    <div class="flex items-start space-x-4">
-                                        <i class="fa-regular fa-envelope mt-1 text-brand-500"></i>
-                                        <span>hello@cozyloopsbykayce.com</span>
-                                    </div>
-                                    <div class="flex items-start space-x-4">
-                                        <i class="fa-solid fa-location-dot mt-1 text-brand-500"></i>
-                                        <span>Studio Based in<br>Portland, OR</span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="mt-12 flex space-x-4">
-                                <a href="#" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-brand-500 transition-colors"><i class="fa-brands fa-instagram"></i></a>
-                                <a href="#" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-brand-500 transition-colors"><i class="fa-brands fa-tiktok"></i></a>
-                                <a href="#" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-brand-500 transition-colors"><i class="fa-brands fa-pinterest-p"></i></a>
-                            </div>
+                <div class="bg-theme-dark p-8 rounded-2xl border border-theme-darkblue shadow-lg">
+                    <form id="contactForm" class="space-y-4" onsubmit="submitForm(event)">
+                        <div>
+                            <label for="name" class="block text-sm font-medium text-theme-gray mb-1">Name</label>
+                            <input type="text" id="name" name="name" required
+                                class="w-full bg-theme-black border border-theme-darkblue/30 rounded-lg px-4 py-2 text-theme-light focus:outline-none focus:border-theme-purple focus:ring-1 focus:ring-theme-purple transition-colors">
                         </div>
                         
-                        <!-- Contact Form -->
-                        <div class="p-10 md:col-span-3">
-                            <form onsubmit="handleContactSubmit(event)" class="space-y-6">
-                                <div class="grid grid-cols-2 gap-6">
-                                    <div>
-                                        <label for="fname" class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                                        <input type="text" id="fname" required class="w-full border-gray-300 border rounded-md px-4 py-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-colors">
-                                    </div>
-                                    <div>
-                                        <label for="lname" class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                                        <input type="text" id="lname" required class="w-full border-gray-300 border rounded-md px-4 py-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-colors">
-                                    </div>
-                                </div>
-                                <div>
-                                    <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                                    <input type="email" id="email" required class="w-full border-gray-300 border rounded-md px-4 py-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-colors">
-                                </div>
-                                <div>
-                                    <label for="subject" class="block text-sm font-medium text-gray-700 mb-1">Subject</label>
-                                    <select id="subject" class="w-full border-gray-300 border rounded-md px-4 py-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-colors bg-white">
-                                        <option>General Inquiry</option>
-                                        <option>Order Status</option>
-                                        <option>Custom Commission</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label for="message" class="block text-sm font-medium text-gray-700 mb-1">Message</label>
-                                    <textarea id="message" rows="4" required class="w-full border-gray-300 border rounded-md px-4 py-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-colors resize-none"></textarea>
-                                </div>
-                                <button type="submit" class="w-full bg-brand-800 text-white font-medium py-3 rounded-md hover:bg-brand-900 transition-colors shadow-md">Send Message</button>
-                            </form>
-                            <div id="contact-success" class="hidden mt-4 p-4 bg-green-50 text-green-800 rounded-md border border-green-200">
-                                Thank you for your message! Kayce will get back to you soon.
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-theme-gray mb-1">Email</label>
+                            <input type="email" id="email" name="email" required
+                                class="w-full bg-theme-black border border-theme-darkblue/30 rounded-lg px-4 py-2 text-theme-light focus:outline-none focus:border-theme-purple focus:ring-1 focus:ring-theme-purple transition-colors">
+                        </div>
+                        
+                        <div>
+                            <label for="message" class="block text-sm font-medium text-theme-gray mb-1">Message</label>
+                            <textarea id="message" name="message" rows="5" required
+                                class="w-full bg-theme-black border border-theme-darkblue/30 rounded-lg px-4 py-2 text-theme-light focus:outline-none focus:border-theme-purple focus:ring-1 focus:ring-theme-purple transition-colors resize-none"></textarea>
+                        </div>
+                        
+                        <button type="submit" id="submitBtn" class="w-full bg-gradient-to-r from-theme-blue to-theme-purple text-white font-bold py-3 rounded-lg hover:opacity-90 transition-opacity flex justify-center items-center">
+                            <span>Send Message</span>
+                        </button>
+                        
+                        <div id="formStatus" class="hidden text-center mt-4 p-3 rounded-lg text-sm font-medium"></div>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- ABOUT ME PAGE -->
+        <section id="about" class="page-content">
+            <div class="max-w-4xl mx-auto">
+                <h2 class="text-3xl font-bold text-pink-500 border-b-2 border-theme-purple pb-2 inline-block mb-6">Kayce Cochran</h2>
+                
+                <div class="flex flex-col md:flex-row gap-8 items-start">
+                    <div class="w-full md:w-1/3 flex justify-center">
+                        <!-- Placeholder for a profile picture -->
+                        <div class="w-48 h-48 rounded-full bg-gradient-to-tr from-theme-blue to-theme-purple p-1">
+                            <div class="w-full h-full rounded-full bg-theme-dark flex items-center justify-center overflow-hidden">
+                                <i class="fa-solid fa-user text-6xl text-theme-gray"></i>
+                                <!-- Replace with actual image: <img src="assets/profile.jpg" alt="Kayce" class="w-full h-full object-cover"> -->
                             </div>
+                        </div>
+                    </div>
+                    
+                    <div class="w-full md:w-2/3 bg-theme-dark p-6 rounded-xl border border-theme-darkblue">
+                        <h3 class="text-2xl font-semibold mb-4 text-theme-light">Hello, I'm Kayce!</h3>
+                        <p class="text-theme-gray mb-4 leading-relaxed">
+                            Welcome to Cozy Loops! I am passionate about creating handcrafted items that bring warmth and comfort to your everyday life. Every piece you see here is made with dedication, creativity, and a love for the craft.
+                        </p>
+                        <p class="text-theme-gray mb-4 leading-relaxed">
+                            Whether it's experimenting with new textures, finding the perfect color combinations, or bringing a custom request to life, my goal is to deliver high-quality products that you'll cherish.
+                        </p>
+                        <div class="flex gap-4 mt-6">
+                            <a href="#" class="text-theme-gray hover:text-theme-purple transition-colors"><i class="fa-brands fa-instagram text-2xl"></i></a>
+                            <a href="#" class="text-theme-gray hover:text-theme-blue transition-colors"><i class="fa-brands fa-facebook text-2xl"></i></a>
+                            <a href="#" class="text-theme-gray hover:text-theme-light transition-colors"><i class="fa-brands fa-tiktok text-2xl"></i></a>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
+
     </main>
 
     <!-- Footer -->
-    <footer class="bg-brand-900 text-brand-100 py-12 border-t border-brand-800">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div>
-                <span class="font-serif italic text-2xl text-white font-semibold tracking-tight block mb-4">Cozy Loops<span class="text-brand-500 text-base not-italic ml-2">by Kayce</span></span>
-                <p class="text-sm opacity-80 max-w-xs">Handcrafted knit and crochet apparel designed to bring warmth and joy to your everyday life.</p>
-            </div>
-            <div>
-                <h4 class="text-white font-serif text-lg mb-4">Quick Links</h4>
-                <ul class="space-y-2 text-sm opacity-80">
-                    <li><button onclick="navigateTo('shop')" class="hover:text-white transition-colors">Shop All</button></li>
-                    <li><button onclick="navigateTo('about')" class="hover:text-white transition-colors">About Kayce</button></li>
-                    <li><button onclick="navigateTo('contact')" class="hover:text-white transition-colors">Contact & Custom Orders</button></li>
-                    <li><a href="#" class="hover:text-white transition-colors">Shipping & Returns policy</a></li>
-                </ul>
-            </div>
-            <div>
-                <h4 class="text-white font-serif text-lg mb-4">Newsletter</h4>
-                <p class="text-sm opacity-80 mb-4">Subscribe for shop updates, new yarn drops, and exclusive discounts.</p>
-                <form class="flex" onsubmit="event.preventDefault(); alert('Subscribed successfully!');">
-                    <input type="email" placeholder="Your email address" required class="w-full px-4 py-2 bg-brand-800 border border-brand-800 rounded-l-md text-white focus:outline-none focus:border-brand-500 placeholder-brand-100/50">
-                    <button type="submit" class="bg-brand-500 hover:bg-brand-500/90 text-white px-4 py-2 rounded-r-md transition-colors font-medium">Join</button>
-                </form>
-            </div>
-        </div>
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 pt-8 border-t border-brand-800 text-sm text-center opacity-60 flex flex-col md:flex-row justify-between items-center">
-            <p>&copy; <span id="year"></span> Cozy Loops by Kayce. All rights reserved.</p>
-            <div class="mt-4 md:mt-0 flex space-x-4">
-                <i class="fa-brands fa-cc-stripe text-2xl"></i>
-                <i class="fa-brands fa-cc-visa text-2xl"></i>
-                <i class="fa-brands fa-cc-mastercard text-2xl"></i>
-                <i class="fa-brands fa-cc-paypal text-2xl"></i>
-            </div>
+    <footer class="bg-theme-black border-t border-theme-darkblue/20 py-6 mt-auto">
+        <div class="container mx-auto px-4 text-center text-theme-gray text-sm">
+            <p>&copy; <span id="year"></span> Cozy Loops by Kayce Cochran. All rights reserved.</p>
         </div>
     </footer>
 
-    <!-- Shopping Cart Overlay/Drawer -->
-    <div id="cart-overlay" class="fixed inset-0 bg-black/50 z-50 hidden opacity-0 transition-opacity duration-300" onclick="if(event.target === this) toggleCart()">
-        <div id="cart-drawer" class="absolute top-0 right-0 h-full w-full sm:w-[400px] bg-white shadow-2xl flex flex-col">
-            <!-- Drawer Header -->
-            <div class="flex justify-between items-center p-6 border-b border-gray-100">
-                <h2 class="font-serif text-2xl text-brand-900">Your Cart</h2>
-                <button onclick="toggleCart()" class="text-gray-400 hover:text-gray-800 focus:outline-none">
-                    <i class="fa-solid fa-xmark text-2xl"></i>
-                </button>
-            </div>
-            
-            <!-- Cart Items -->
-            <div id="cart-items-container" class="flex-grow overflow-y-auto p-6 space-y-6">
-                <!-- Injected via JS -->
-            </div>
-
-            <!-- Drawer Footer -->
-            <div class="border-t border-gray-100 p-6 bg-brand-50">
-                <div class="flex justify-between items-center mb-4 text-lg font-medium text-brand-900">
-                    <span>Subtotal</span>
-                    <span id="cart-subtotal">$0.00</span>
-                </div>
-                <p class="text-sm text-gray-500 mb-6">Taxes and shipping calculated at checkout.</p>
-                <button onclick="checkout()" class="w-full bg-brand-800 text-white font-medium py-4 rounded-md hover:bg-brand-900 transition-colors shadow-lg flex justify-center items-center">
-                    <i class="fa-solid fa-lock mr-2 text-sm"></i> Secure Checkout
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- JavaScript Application Logic -->
+    <!-- JavaScript Logic -->
     <script>
-        // --- Data ---
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbwvf8WK80Lwa-Fu5RKsb7PMph2mBlcZof145CTbcgrVRaxPrsm1EGogougLyw7XGRzL/exec';
-        let productCatalog = [];
-        let cart = [];
-        let isInventoryLoaded = false;
+        // Set current year in footer
+        document.getElementById('year').textContent = new Date().getFullYear();
+
+        // --- State Management ---
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbzIO6Cwz-cxCDBpFMPrD3r6yTSDIU9W80jPxN6Fa0FeeMWWg8fZ2blLhPiAyKJNwQ4r4g/exec';
+        let allProducts = [];
+        let categories = {}; // Groups products by Type
+        let uniqueTags = new Set();
 
         // --- Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('year').textContent = new Date().getFullYear();
-            loadCart();
-            fetchInventory(); // Fetch data from Google Sheets
+            // Setup Search Listener
+            document.getElementById('searchInput').addEventListener('input', filterProducts);
             
-            // Check hash for direct links, default to home
-            const hash = window.location.hash.replace('#', '');
-            if(['home', 'shop', 'about', 'contact'].includes(hash)) {
-                navigateTo(hash);
-            }
+            // Load products via JSONP immediately
+            loadProductsJSONP();
         });
 
-        async function fetchInventory() {
-            const grid = document.getElementById('product-grid');
-            grid.innerHTML = '<div class="col-span-full flex justify-center py-12"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-800"></div></div>';
-
-            try {
-                const response = await fetch(GAS_URL);
-                if (!response.ok) throw new Error('Network response was not ok');
-                const data = await response.json();
-                
-                if (data.error) {
-                    console.error("Script Error:", data.error);
-                    throw new Error(data.error);
-                }
-                
-                productCatalog = data;
-                isInventoryLoaded = true;
-                
-                // Build dynamic filters based on data
-                buildFilters();
-                
-                // Determine current active filter based on the UI state, default to 'all'
-                let activeFilter = 'all';
-                // Try to get hash if user navigated to a specific category
-                const hashParams = window.location.hash.split('?filter=');
-                if(hashParams.length > 1) {
-                    activeFilter = hashParams[1];
-                }
-                
-                renderProducts(activeFilter);
-
-            } catch (error) {
-                console.error("Failed to load inventory:", error);
-                grid.innerHTML = '<p class="col-span-full text-center text-red-500 py-10">Failed to load inventory. Please check your connection and try again.</p>';
-            }
-        }
-
-        // --- Dynamic Filter Logic ---
-        function buildFilters() {
-            const filtersContainer = document.getElementById('shop-filters');
-            filtersContainer.innerHTML = ''; // Clear container
-
-            // Extract unique categories, ignoring blank entries, trim whitespace, and lowercase
-            const rawCategories = productCatalog
-                .map(p => p.category ? p.category.toLowerCase().trim() : 'uncategorized')
-                .filter(c => c !== '');
-            
-            const uniqueCategories = [...new Set(rawCategories)];
-
-            // Create 'All Items' button
-            filtersContainer.appendChild(createFilterBtn('all', 'All Items'));
-
-            // Create buttons for each unique category
-            uniqueCategories.forEach(cat => {
-                // Capitalize first letter for display text
-                const displayCat = cat.charAt(0).toUpperCase() + cat.slice(1);
-                filtersContainer.appendChild(createFilterBtn(cat, displayCat));
-            });
-        }
-
-        function createFilterBtn(filterValue, displayText) {
-            const btn = document.createElement('button');
-            btn.className = "filter-btn px-6 py-2 rounded-full border border-brand-800 text-brand-800 hover:bg-brand-800 hover:text-white transition-colors capitalize";
-            btn.dataset.filter = filterValue; // Store the raw filter value
-            btn.innerText = displayText;
-            btn.onclick = () => renderProducts(filterValue);
-            return btn;
-        }
-
         // --- Navigation Logic ---
-        function navigateTo(viewId, subCategory = null) {
-            // Hide all views
-            document.querySelectorAll('.view-section').forEach(el => {
-                el.classList.remove('active');
+        function switchPage(pageId) {
+            // Hide all pages
+            document.querySelectorAll('.page-content').forEach(page => {
+                page.classList.remove('active');
             });
             
-            // Show target view
-            document.getElementById(`view-${viewId}`).classList.add('active');
+            // Remove active state from tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
             
-            // Handle Shop Subcategory routing
-            if(viewId === 'shop') {
-                if(subCategory) {
-                    window.location.hash = `${viewId}?filter=${subCategory}`;
-                    renderProducts(subCategory);
-                } else {
-                    window.location.hash = viewId;
-                    renderProducts('all'); // Default when just clicking 'Shop'
-                }
-            } else {
-                window.location.hash = viewId;
-            }
-            window.scrollTo(0, 0);
+            // Show selected page
+            document.getElementById(pageId).classList.add('active');
+            
+            // Highlight active tab
+            const activeTab = document.querySelector(`.nav-tab[data-target="${pageId}"]`);
+            if (activeTab) activeTab.classList.add('active');
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        function toggleMobileMenu() {
-            const menu = document.getElementById('mobile-menu');
-            menu.classList.toggle('open');
-        }
+        // --- Data Fetching & Processing ---
+        function groupProducts(products) {
+            categories = {};
+            uniqueTags.clear();
 
-        // --- Shop Logic ---
-        function renderProducts(filterCategory) {
-            const grid = document.getElementById('product-grid');
-            
-            // Update active filter button styling dynamically based on data-filter
-            document.querySelectorAll('#shop-filters .filter-btn').forEach(btn => {
-                // Reset to default class
-                btn.className = "filter-btn px-6 py-2 rounded-full border border-brand-800 text-brand-800 hover:bg-brand-800 hover:text-white transition-colors capitalize";
+            products.forEach(product => {
+                // Determine Category (Type) using strict exact match to "Product Type" header from sheet
+                const type = product["Product Type"] || product.ProductType || product.Type || 'Uncategorized';
                 
-                if(btn.dataset.filter === filterCategory){
-                    btn.classList.add('bg-brand-800', 'text-white', 'active');
-                    btn.classList.remove('text-brand-800');
+                if (!categories[type]) {
+                    categories[type] = [];
+                }
+                categories[type].push(product);
+
+                // Collect Unique Tags
+                const tagsRaw = product.Tags || product.tags || '';
+                if (tagsRaw) {
+                    const tagArray = typeof tagsRaw === 'string' ? tagsRaw.split(',').map(t => t.trim()) : [];
+                    tagArray.forEach(tag => {
+                        if (tag) uniqueTags.add(tag);
+                    });
                 }
             });
+        }
 
-            // If inventory hasn't finished loading, keep spinner
-            if (!isInventoryLoaded) {
-                grid.innerHTML = '<div class="col-span-full flex justify-center py-12"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-800"></div></div>';
-                return;
-            }
+        function populateDropdowns() {
+            // Populate Type Dropdown
+            const typeFilter = document.getElementById('typeFilter');
+            // Keep the 'All Types' option, remove the rest before re-populating
+            typeFilter.innerHTML = '<option value="">All Types</option>';
+            Object.keys(categories).sort().forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                typeFilter.appendChild(option);
+            });
 
-            grid.innerHTML = ''; // Clear current
-
-            // Filter data
-            const filteredProducts = filterCategory === 'all' 
-                ? productCatalog 
-                : productCatalog.filter(p => p.category && p.category.toLowerCase().trim() === filterCategory);
-
-            // Render HTML
-            if(filteredProducts.length === 0) {
-                grid.innerHTML = `<p class="col-span-full text-center text-gray-500 py-10">No items found in this category.</p>`;
-                return;
-            }
-
-            filteredProducts.forEach(product => {
-                const card = document.createElement('div');
-                card.className = "product-card bg-white rounded-xl shadow-sm hover:shadow-xl transition-shadow duration-300 overflow-hidden flex flex-col group";
-                card.innerHTML = `
-                    <div class="relative overflow-hidden cursor-pointer h-80 bg-gray-100">
-                        <img src="${product.img}" alt="${product.name}" class="product-img w-full h-full object-cover">
-                        <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/50 to-transparent p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 flex justify-center">
-                             <button onclick="quickAddToCart(${product.id})" class="bg-brand-500 text-white px-6 py-2 rounded-full text-sm font-medium hover:bg-brand-600 transition-colors w-full shadow-lg">Quick Add to Cart</button>
-                        </div>
-                    </div>
-                    <div class="p-6 flex flex-col flex-grow">
-                        <p class="text-xs text-brand-500 uppercase tracking-wider font-semibold mb-1">${product.category || 'Uncategorized'}</p>
-                        <h3 class="font-serif text-xl text-brand-900 mb-2 flex-grow">${product.name}</h3>
-                        <div class="flex justify-between items-center mt-4">
-                            <span class="text-lg font-semibold text-gray-900">$${Number(product.price).toFixed(2)}</span>
-                            <button onclick="addToCart(${product.id})" class="w-10 h-10 rounded-full border border-brand-200 text-brand-800 flex items-center justify-center hover:bg-brand-50 hover:border-brand-500 transition-colors focus:outline-none" aria-label="Add to cart">
-                                <i class="fa-solid fa-plus"></i>
-                            </button>
-                        </div>
-                    </div>
-                `;
-                grid.appendChild(card);
+            // Populate Tag Dropdown
+            const tagFilter = document.getElementById('tagFilter');
+            // Keep the 'All Tags' option, remove the rest before re-populating
+            tagFilter.innerHTML = '<option value="">All Tags</option>';
+            Array.from(uniqueTags).sort().forEach(tag => {
+                const option = document.createElement('option');
+                option.value = tag;
+                option.textContent = tag;
+                tagFilter.appendChild(option);
             });
         }
 
-        // --- Cart Logic ---
-        function quickAddToCart(productId) {
-            addToCart(productId);
-            toggleCart(); // Open cart to show user action
-        }
-
-        function addToCart(productId) {
-            const product = productCatalog.find(p => p.id === productId);
-            if(!product) return;
-
-            const existingItem = cart.find(item => item.id === productId);
-            if(existingItem) {
-                existingItem.quantity += 1;
-            } else {
-                cart.push({ ...product, quantity: 1 });
-            }
+        // --- Rendering Logic ---
+        function renderCategories(productsToRender = categories, expandAll = false) {
+            const container = document.getElementById('shopContainer');
+            container.innerHTML = ''; // Clear current
             
-            saveCart();
-            updateCartUI();
-        }
-
-        function removeFromCart(productId) {
-            cart = cart.filter(item => item.id !== productId);
-            saveCart();
-            updateCartUI();
-        }
-
-        function changeQuantity(productId, delta) {
-            const item = cart.find(i => i.id === productId);
-            if(!item) return;
-
-            item.quantity += delta;
-            if(item.quantity <= 0) {
-                removeFromCart(productId);
-            } else {
-                saveCart();
-                updateCartUI();
-            }
-        }
-
-        function saveCart() {
-            localStorage.setItem('cozyloops_cart', JSON.stringify(cart));
-        }
-
-        function loadCart() {
-            const saved = localStorage.getItem('cozyloops_cart');
-            if(saved) {
-                cart = JSON.parse(saved);
-                updateCartUI();
-            }
-        }
-
-        function updateCartUI() {
-            // Update bubble count
-            const count = cart.reduce((sum, item) => sum + item.quantity, 0);
-            document.getElementById('cart-count').innerText = count;
-
-            // Update drawer items
-            const container = document.getElementById('cart-items-container');
-            container.innerHTML = '';
-            
-            let subtotal = 0;
-
-            if(cart.length === 0) {
+            if (Object.keys(productsToRender).length === 0) {
                 container.innerHTML = `
-                    <div class="flex flex-col items-center justify-center h-full text-gray-400 space-y-4">
-                        <i class="fa-solid fa-basket-shopping text-5xl mb-2"></i>
-                        <p>Your cart is empty.</p>
-                        <button onclick="toggleCart(); navigateTo('shop');" class="px-6 py-2 border border-brand-500 text-brand-500 rounded-full hover:bg-brand-50 transition-colors">Start Shopping</button>
-                    </div>
-                `;
-            } else {
-                cart.forEach(item => {
-                    subtotal += Number(item.price) * item.quantity;
-                    const el = document.createElement('div');
-                    el.className = "flex space-x-4 bg-white";
-                    el.innerHTML = `
-                        <div class="h-24 w-20 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
-                            <img src="${item.img}" alt="${item.name}" class="h-full w-full object-cover object-center">
-                        </div>
-                        <div class="flex flex-1 flex-col justify-between">
-                            <div>
-                                <div class="flex justify-between text-base font-medium text-gray-900">
-                                    <h3 class="font-serif text-brand-900 line-clamp-1 mr-4">${item.name}</h3>
-                                    <p class="ml-4">$${(Number(item.price) * item.quantity).toFixed(2)}</p>
-                                </div>
-                                <p class="mt-1 text-sm text-gray-500 capitalize">${item.category}</p>
-                            </div>
-                            <div class="flex flex-1 items-end justify-between text-sm">
-                                <div class="flex items-center border border-gray-300 rounded-md">
-                                    <button onclick="changeQuantity(${item.id}, -1)" class="px-2 py-1 text-gray-600 hover:text-brand-500 focus:outline-none"><i class="fa-solid fa-minus text-xs"></i></button>
-                                    <span class="px-2 py-1 font-medium text-gray-900 w-8 text-center">${item.quantity}</span>
-                                    <button onclick="changeQuantity(${item.id}, 1)" class="px-2 py-1 text-gray-600 hover:text-brand-500 focus:outline-none"><i class="fa-solid fa-plus text-xs"></i></button>
-                                </div>
-                                <div class="flex">
-                                    <button type="button" onclick="removeFromCart(${item.id})" class="font-medium text-red-500 hover:text-red-700">Remove</button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    container.appendChild(el);
-                });
-            }
-
-            // Update subtotal
-            document.getElementById('cart-subtotal').innerText = `$${subtotal.toFixed(2)}`;
-        }
-
-        function toggleCart() {
-            const overlay = document.getElementById('cart-overlay');
-            const drawer = document.getElementById('cart-drawer');
-            
-            if(overlay.classList.contains('hidden')) {
-                overlay.classList.remove('hidden');
-                // slight delay for transition
-                setTimeout(() => {
-                    overlay.classList.remove('opacity-0');
-                    overlay.classList.add('opacity-100');
-                    drawer.classList.add('open');
-                }, 10);
-            } else {
-                overlay.classList.remove('opacity-100');
-                overlay.classList.add('opacity-0');
-                drawer.classList.remove('open');
-                setTimeout(() => {
-                    overlay.classList.add('hidden');
-                }, 300); // match transition duration
-            }
-        }
-
-        function checkout() {
-            if(cart.length === 0) {
-                alert("Your cart is empty!");
+                    <div class="text-center py-10">
+                        <i class="fa-solid fa-ghost text-4xl text-theme-gray mb-3"></i>
+                        <p class="text-theme-gray">No products found matching your search.</p>
+                    </div>`;
+                container.classList.remove('hidden');
                 return;
             }
-            // In a real app, this redirects to Stripe/Shopify checkout.
-            alert(`Proceeding to secure checkout...\nOrder Total: ${document.getElementById('cart-subtotal').innerText}`);
+
+            // Iterate over categories
+            for (const [categoryName, products] of Object.entries(productsToRender)) {
+                // Sanitize ID for HTML
+                const categoryId = 'cat-' + categoryName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+                
+                // Build category HTML structure
+                const section = document.createElement('div');
+                section.className = 'bg-theme-dark border border-theme-darkblue/30 rounded-xl overflow-hidden';
+                
+                // Header (Clickable for accordion)
+                const header = document.createElement('div');
+                header.className = 'px-6 py-4 bg-theme-black cursor-pointer flex justify-between items-center hover:bg-theme-dark transition-colors';
+                header.onclick = () => toggleCategory(categoryId, header);
+                header.innerHTML = `
+                    <h3 class="text-xl font-semibold text-theme-light flex items-center gap-3">
+                        ${categoryName}
+                        <span class="text-xs bg-theme-blue text-white px-2 py-1 rounded-full">${products.length}</span>
+                    </h3>
+                    <i class="fa-solid fa-chevron-down chevron text-theme-gray ${expandAll ? 'rotated' : ''}"></i>
+                `;
+                
+                // Content area for products
+                const contentWrapper = document.createElement('div');
+                contentWrapper.id = categoryId;
+                contentWrapper.className = `category-content bg-theme-dark ${expandAll ? 'expanded' : ''}`;
+                
+                // Grid for products inside this category
+                const grid = document.createElement('div');
+                grid.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-6';
+                
+                // Add products to grid
+                products.forEach(product => {
+                    grid.appendChild(createProductCard(product));
+                });
+                
+                contentWrapper.appendChild(grid);
+                section.appendChild(header);
+                section.appendChild(contentWrapper);
+                container.appendChild(section);
+            }
+            
+            container.classList.remove('hidden');
         }
 
-        // --- Contact Form Logic ---
-        function handleContactSubmit(e) {
+        function loadProductsJSONP() {
+            const loader = document.getElementById('shopLoader');
+            const errorDiv = document.getElementById('shopError');
+            const container = document.getElementById('shopContainer');
+            
+            loader.style.display = 'flex';
+            errorDiv.classList.add('hidden');
+            container.classList.add('hidden');
+
+            // Generate a unique callback function name
+            const callbackName = 'handleGASData_' + Math.round(100000 * Math.random());
+
+            // Define the global callback function
+            window[callbackName] = function(data) {
+                console.log("JSONP Data received successfully");
+                
+                // Cleanup script tag and global function
+                document.body.removeChild(script);
+                delete window[callbackName];
+                clearTimeout(timeoutId);
+
+                if (Array.isArray(data) && data.length > 0) {
+                    allProducts = data;
+                } else {
+                     console.warn('Data received was empty or not an array.');
+                     allProducts = [];
+                }
+                
+                loader.style.display = 'none';
+                groupProducts(allProducts);
+                populateDropdowns(); // Populate the filters after grouping
+                renderCategories();
+            };
+
+            // Setup JSONP script tag
+            const script = document.createElement('script');
+            // Append the callback parameter to the URL
+            script.src = `${GAS_URL}?callback=${callbackName}`;
+            
+            // Error handling for script load failure
+            script.onerror = function() {
+                console.error("JSONP Script failed to load.");
+                document.body.removeChild(script);
+                delete window[callbackName];
+                clearTimeout(timeoutId);
+                
+                loader.style.display = 'none';
+                errorDiv.classList.remove('hidden');
+                errorDiv.innerText = "Failed to load products. Check network connection and script URL.";
+            };
+
+            // Timeout to prevent hanging if script never loads/executes
+            const timeoutId = setTimeout(() => {
+                if (window[callbackName]) {
+                    console.error("JSONP Request timed out.");
+                    script.onerror();
+                }
+            }, 10000); // 10 seconds timeout
+
+            // Inject the script to trigger the request
+            document.body.appendChild(script);
+        }
+
+        function createProductCard(product) {
+            const card = document.createElement('div');
+            card.className = 'product-card bg-theme-black border border-theme-darkblue/30 rounded-lg overflow-hidden flex flex-col h-full';
+            
+            // Strict check based on sheet headers
+            const imgUrl = product["Picture Link"] || product.PictureLink || product.Image || `https://placehold.co/400x300/f2e5c8/d9653c?text=${encodeURIComponent(product.Name || 'Product')}`;
+            const price = product.Price || product.price || 'Contact for price';
+            const name = product.Name || product.name || 'Unnamed Product';
+            const description = product.Description || product.description || 'No description available.';
+            
+            // Format Tags
+            let tagsHtml = '';
+            const tagsRaw = product.Tags || product.tags;
+            if (tagsRaw) {
+                const tags = typeof tagsRaw === 'string' ? tagsRaw.split(',').map(t => t.trim()) : [];
+                tagsHtml = tags.map(t => `<span class="inline-block bg-theme-darkblue/30 text-theme-blue text-xs px-2 py-1 rounded-md mb-1 mr-1 border border-theme-blue/30">${t}</span>`).join('');
+            }
+
+            card.innerHTML = `
+                <div class="h-48 w-full overflow-hidden bg-theme-dark">
+                    <img src="${imgUrl}" alt="${name}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x300/f2e5c8/d9653c?text=Image+Not+Found'">
+                </div>
+                <div class="p-4 flex flex-col flex-grow">
+                    <h4 class="text-lg font-bold text-theme-light mb-1">${name}</h4>
+                    <p class="text-theme-purple font-semibold mb-2">${typeof price === 'number' ? '$'+price.toFixed(2) : price}</p>
+                    <p class="text-sm text-theme-gray mb-4 flex-grow line-clamp-3">${description}</p>
+                    ${tagsHtml ? `<div class="mb-4">${tagsHtml}</div>` : ''}
+                    <button class="w-full mt-auto bg-theme-dark border border-theme-blue text-theme-blue hover:bg-theme-blue hover:text-white py-2 rounded transition-colors" onclick="switchPage('contact'); document.getElementById('message').value = 'I am interested in the ${name}.'">
+                        Inquire
+                    </button>
+                </div>
+            `;
+            return card;
+        }
+
+        function toggleCategory(contentId, headerElement) {
+            const content = document.getElementById(contentId);
+            const chevron = headerElement.querySelector('.chevron');
+            
+            if (content.classList.contains('expanded')) {
+                content.classList.remove('expanded');
+                chevron.classList.remove('rotated');
+            } else {
+                content.classList.add('expanded');
+                chevron.classList.add('rotated');
+            }
+        }
+
+        function filterProducts() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+            const selectedType = document.getElementById('typeFilter').value;
+            const selectedTag = document.getElementById('tagFilter').value;
+            
+            if (searchTerm === '' && selectedType === '' && selectedTag === '') {
+                // If no filters are active, re-render normally (collapsed by default)
+                renderCategories(categories, false);
+                return;
+            }
+
+            // Filter logic
+            const filteredCategories = {};
+            
+            // If a specific type is selected, only look at that category. Otherwise, look at all.
+            const categoriesToSearch = selectedType ? { [selectedType]: categories[selectedType] || [] } : categories;
+
+            for (const [categoryName, products] of Object.entries(categoriesToSearch)) {
+                const matchedProducts = products.filter(product => {
+                    // 1. Tag Match Logic
+                    let tagMatch = true;
+                    if (selectedTag) {
+                        const tagsRaw = product.Tags || product.tags || '';
+                        const tagArray = typeof tagsRaw === 'string' ? tagsRaw.split(',').map(t => t.trim().toLowerCase()) : [];
+                        tagMatch = tagArray.includes(selectedTag.toLowerCase());
+                    }
+
+                    // 2. Search Term Match Logic
+                    let searchMatch = true;
+                    if (searchTerm) {
+                        const searchString = `
+                            ${product.Name || ''} 
+                            ${product["Product Type"] || product.ProductType || product.Type || ''} 
+                            ${product.Description || ''} 
+                            ${product.Tags || ''}
+                        `.toLowerCase();
+                        searchMatch = searchString.includes(searchTerm);
+                    }
+                    
+                    // Product must pass ALL active filters
+                    return tagMatch && searchMatch;
+                });
+
+                if (matchedProducts.length > 0) {
+                    filteredCategories[categoryName] = matchedProducts;
+                }
+            }
+
+            // Render filtered results and expand them
+            renderCategories(filteredCategories, true);
+        }
+
+        // --- Form Handling ---
+        function submitForm(e) {
             e.preventDefault();
-            // Simulate form processing
-            const btn = e.target.querySelector('button[type="submit"]');
-            const originalText = btn.innerText;
-            btn.innerText = 'Sending...';
+            
+            const btn = document.getElementById('submitBtn');
+            const status = document.getElementById('formStatus');
+            const form = document.getElementById('contactForm');
+            
+            // UI Loading state
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Sending...';
             btn.disabled = true;
-
-            setTimeout(() => {
-                e.target.reset();
-                btn.innerText = originalText;
+            status.classList.add('hidden');
+            
+            // Collect Data
+            const formData = new FormData(form);
+            const data = new URLSearchParams();
+            for (const pair of formData) {
+                data.append(pair[0], pair[1]);
+            }
+            
+            // Send Data to GAS doPost
+            fetch(GAS_URL, {
+                method: 'POST',
+                body: data,
+                // no-cors is often required for posting to GAS without preflight issues, 
+                // but it means we can't read the exact JSON response easily.
+                mode: 'no-cors' 
+            })
+            .then(() => {
+                // Since mode is no-cors, fetch succeeds if request is sent, but response is opaque.
+                // We assume success here.
+                status.textContent = "Message sent successfully! I'll get back to you soon.";
+                status.className = "mt-4 p-3 rounded-lg text-sm font-medium bg-green-900/50 border border-green-500 text-green-200 block";
+                form.reset();
+            })
+            .catch(error => {
+                console.error('Error submitting form:', error);
+                status.textContent = "There was an error sending your message. Please try again later.";
+                status.className = "mt-4 p-3 rounded-lg text-sm font-medium bg-red-900/50 border border-red-500 text-red-200 block";
+            })
+            .finally(() => {
+                // Reset Button
+                btn.innerHTML = '<span>Send Message</span>';
                 btn.disabled = false;
-                document.getElementById('contact-success').classList.remove('hidden');
-                setTimeout(() => {
-                     document.getElementById('contact-success').classList.add('hidden');
-                }, 5000);
-            }, 1000);
+            });
         }
-
     </script>
 </body>
 </html>
