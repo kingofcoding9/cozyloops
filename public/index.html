@@ -93,7 +93,8 @@
         }
         
         .category-content.expanded {
-            max-height: 5000px; /* Arbitrary large number to allow full expansion */
+            max-height: 5000px;
+            overflow: visible; /* Arbitrary large number to allow full expansion */
             transition: max-height 0.6s ease-in;
         }
         
@@ -523,11 +524,11 @@
                 
                 // Build category HTML structure
                 const section = document.createElement('div');
-                section.className = 'bg-theme-dark border border-theme-darkblue/30 rounded-xl overflow-hidden';
+                section.className = 'bg-theme-dark border border-theme-darkblue/30 rounded-xl overflow-visible';
                 
                 // Header (Clickable for accordion)
                 const header = document.createElement('div');
-                header.className = 'px-6 py-4 bg-theme-black cursor-pointer flex justify-between items-center hover:bg-theme-dark transition-colors';
+                header.className = 'px-6 py-4 bg-theme-black rounded-t-xl cursor-pointer flex justify-between items-center hover:bg-theme-dark transition-colors';
                 header.onclick = () => toggleCategory(categoryId, header);
                 header.innerHTML = `
                     <h3 class="text-xl font-semibold text-theme-light flex items-center gap-3">
@@ -686,7 +687,7 @@
 
         function createProductCard(product) {
             const card = document.createElement('div');
-            card.className = 'product-card bg-theme-black border border-theme-darkblue/30 rounded-lg overflow-hidden flex flex-col h-full';
+            card.className = 'product-card relative bg-theme-black border border-theme-darkblue/30 rounded-lg overflow-visible flex flex-col h-full';
             
             // Only use a real http(s) product image. The sheet currently contains
             // https://example for at least one row, which is a placeholder rather than an image.
@@ -719,7 +720,7 @@
             }
 
             card.innerHTML = `
-                <div class="h-48 w-full overflow-hidden bg-theme-dark">
+                <div class="h-48 w-full overflow-hidden rounded-t-lg bg-theme-dark">
                     <img src="${imgUrl}" alt="${name}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x300/f2e5c8/d9653c?text=Image+Not+Found'">
                 </div>
                 <div class="p-4 flex flex-col flex-grow">
@@ -762,11 +763,25 @@
                                 <div class="block text-sm font-medium text-theme-light">
                                     <div class="flex items-center justify-between gap-2 mb-2">
                                         <span>Color</span>
-                                        <span class="text-xs font-normal text-theme-gray">Tap a picture to select</span>
+                                        <span class="text-xs font-normal text-theme-gray">Search by color name</span>
                                     </div>
                                     <input type="hidden" data-colorway-select value="">
-                                    <div data-colorway-grid class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-80 overflow-y-auto pr-1" role="listbox" aria-label="Yarn colors">
-                                        ${yarnOptions ? '' : `<div class="col-span-full text-sm text-theme-gray py-3">${yarnOptionsError ? 'Colors unavailable' : 'Loading colors…'}</div>`}
+                                    <div data-colorway-picker class="relative z-30">
+                                        <button type="button" data-colorway-toggle class="w-full flex items-center gap-3 rounded-lg border border-theme-darkblue/40 bg-theme-black px-3 py-2 text-left hover:border-theme-purple focus:outline-none focus:ring-2 focus:ring-theme-purple/40" aria-haspopup="listbox" aria-expanded="false">
+                                            <img data-colorway-toggle-image src="" alt="" class="hidden w-9 h-9 shrink-0 rounded-md object-cover bg-theme-dark">
+                                            <span data-colorway-toggle-label class="min-w-0 flex-1 truncate text-theme-gray">${yarnOptions ? 'Choose yarn color' : (yarnOptionsError ? 'Colors unavailable' : 'Loading colors…')}</span>
+                                            <i class="fa-solid fa-chevron-down text-xs text-theme-gray"></i>
+                                        </button>
+                                        <div data-colorway-menu class="hidden absolute z-40 mt-1 w-full rounded-lg border border-theme-darkblue/50 bg-theme-black shadow-xl overflow-hidden">
+                                            <div class="p-2 border-b border-theme-darkblue/30">
+                                                <div class="relative">
+                                                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-xs text-theme-gray"></i>
+                                                    <input type="search" data-colorway-search placeholder="Search yarn colors…" autocomplete="off" class="w-full bg-theme-dark border border-theme-darkblue/40 rounded-md py-2 pl-8 pr-3 text-theme-light placeholder:text-theme-gray focus:outline-none focus:border-theme-purple">
+                                                </div>
+                                            </div>
+                                            <div data-colorway-options class="max-h-64 overflow-y-auto p-1" role="listbox" aria-label="Yarn colors"></div>
+                                            <p data-colorway-empty class="hidden px-3 py-4 text-sm text-center text-theme-gray">No yarn colors match your search.</p>
+                                        </div>
                                     </div>
                                 </div>
                                 <button type="button" data-color-preview class="hidden w-full items-center gap-3 text-left rounded-lg border border-theme-darkblue/30 bg-theme-black p-2 hover:border-theme-purple transition-colors">
@@ -827,55 +842,118 @@
             updatePricePreview();
 
             const colorSelect = card.querySelector('[data-colorway-select]');
-            const colorGrid = card.querySelector('[data-colorway-grid]');
+            const colorPicker = card.querySelector('[data-colorway-picker]');
+            const colorToggle = card.querySelector('[data-colorway-toggle]');
+            const colorToggleLabel = card.querySelector('[data-colorway-toggle-label]');
+            const colorToggleImage = card.querySelector('[data-colorway-toggle-image]');
+            const colorMenu = card.querySelector('[data-colorway-menu]');
+            const colorSearch = card.querySelector('[data-colorway-search]');
+            const colorOptions = card.querySelector('[data-colorway-options]');
+            const colorEmpty = card.querySelector('[data-colorway-empty]');
             const colorPreview = card.querySelector('[data-color-preview]');
             const colorImage = card.querySelector('[data-color-image]');
             const colorName = card.querySelector('[data-color-name]');
             const yarnView = card.querySelector('[data-yarn-view]');
             let selectedColorway = null;
 
-            const applyColorSelection = (colorway, button) => {
+            const setColorMenuOpen = (open) => {
+                if (!colorMenu || !colorToggle) return;
+                colorMenu.classList.toggle('hidden', !open);
+                colorToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+                if (open && colorSearch) {
+                    colorSearch.value = '';
+                    filterColorways('');
+                    requestAnimationFrame(() => colorSearch.focus());
+                }
+            };
+
+            const applyColorSelection = (colorway) => {
                 selectedColorway = colorway;
                 colorSelect.value = String(colorway.id);
-                colorGrid.querySelectorAll('[data-colorway-card]').forEach(choice => {
-                    const active = choice === button;
-                    choice.setAttribute('aria-selected', active ? 'true' : 'false');
-                    choice.classList.toggle('border-theme-purple', active);
-                    choice.classList.toggle('ring-2', active);
-                    choice.classList.toggle('ring-theme-purple/40', active);
-                    choice.classList.toggle('border-theme-darkblue/30', !active);
-                });
+                colorToggleLabel.textContent = colorway.name;
+                colorToggleLabel.classList.remove('text-theme-gray');
+                colorToggleLabel.classList.add('text-theme-light');
 
-                colorName.textContent = colorway.name;
                 if (colorway.image) {
+                    colorToggleImage.src = colorway.image;
+                    colorToggleImage.alt = `${colorway.name} I Love This Yarn!`;
+                    colorToggleImage.classList.remove('hidden');
                     colorImage.src = colorway.image;
                     colorImage.alt = `${colorway.name} I Love This Yarn!`;
                     colorPreview.classList.remove('hidden');
                     colorPreview.classList.add('flex');
                     colorPreview.onclick = () => openImageViewer(colorway.image, `${colorway.name} — I Love This Yarn!`);
                 } else {
+                    colorToggleImage.classList.add('hidden');
                     colorPreview.classList.add('hidden');
                     colorPreview.classList.remove('flex');
                 }
+                colorName.textContent = colorway.name;
+                setColorMenuOpen(false);
             };
 
-            if (colorGrid && yarnOptions) {
-                yarnOptions.colorways.forEach(colorway => {
+            const renderColorways = (colorways) => {
+                if (!colorOptions) return;
+                colorOptions.replaceChildren();
+                colorways.forEach(colorway => {
                     const choice = document.createElement('button');
                     choice.type = 'button';
-                    choice.dataset.colorwayCard = 'true';
+                    choice.dataset.colorwayOption = 'true';
+                    choice.dataset.searchName = String(colorway.name || '').toLowerCase();
                     choice.setAttribute('role', 'option');
-                    choice.setAttribute('aria-selected', 'false');
-                    choice.className = 'min-w-0 rounded-lg border border-theme-darkblue/30 bg-theme-black p-2 text-left hover:border-theme-purple focus:outline-none focus:ring-2 focus:ring-theme-purple/40 transition-all';
+                    choice.setAttribute('aria-selected', selectedColorway?.id === colorway.id ? 'true' : 'false');
+                    choice.className = 'w-full flex items-center gap-3 rounded-md px-2 py-2 text-left hover:bg-theme-dark focus:outline-none focus:bg-theme-dark';
 
-                    const image = colorway.image
-                        ? `<img src="${colorway.image}" alt="${colorway.name} I Love This Yarn!" loading="lazy" class="w-full aspect-square rounded-md object-cover bg-theme-dark mb-2">`
-                        : `<div class="w-full aspect-square rounded-md bg-theme-dark mb-2 flex items-center justify-center text-theme-gray text-xs text-center px-2">No photo</div>`;
+                    if (colorway.image) {
+                        const img = document.createElement('img');
+                        img.src = colorway.image;
+                        img.alt = `${colorway.name} I Love This Yarn!`;
+                        img.loading = 'lazy';
+                        img.className = 'w-11 h-11 shrink-0 rounded-md object-cover bg-theme-dark';
+                        choice.appendChild(img);
+                    } else {
+                        const placeholder = document.createElement('span');
+                        placeholder.className = 'w-11 h-11 shrink-0 rounded-md bg-theme-dark flex items-center justify-center text-[10px] text-theme-gray';
+                        placeholder.textContent = 'No photo';
+                        choice.appendChild(placeholder);
+                    }
 
-                    choice.innerHTML = `${image}<span class="block text-xs sm:text-sm font-medium text-theme-light leading-tight break-words">${colorway.name}</span>`;
-                    choice.addEventListener('click', () => applyColorSelection(colorway, choice));
-                    colorGrid.appendChild(choice);
+                    const label = document.createElement('span');
+                    label.className = 'min-w-0 flex-1 text-sm font-medium text-theme-light truncate';
+                    label.textContent = colorway.name;
+                    choice.appendChild(label);
+                    choice.addEventListener('click', () => applyColorSelection(colorway));
+                    colorOptions.appendChild(choice);
                 });
+                colorEmpty?.classList.toggle('hidden', colorways.length !== 0);
+            };
+
+            const filterColorways = (query) => {
+                if (!yarnOptions) return;
+                const needle = String(query || '').trim().toLowerCase();
+                const matches = yarnOptions.colorways.filter(colorway => String(colorway.name || '').toLowerCase().includes(needle));
+                renderColorways(matches);
+            };
+
+            if (colorPicker && colorToggle && yarnOptions) {
+                renderColorways(yarnOptions.colorways);
+                colorToggle.addEventListener('click', () => setColorMenuOpen(colorMenu.classList.contains('hidden')));
+                colorSearch?.addEventListener('input', () => filterColorways(colorSearch.value));
+                colorSearch?.addEventListener('keydown', event => {
+                    if (event.key === 'Escape') setColorMenuOpen(false);
+                    if (event.key === 'Enter') {
+                        const first = colorOptions?.querySelector('[data-colorway-option]');
+                        if (first) {
+                            event.preventDefault();
+                            first.click();
+                        }
+                    }
+                });
+                document.addEventListener('click', event => {
+                    if (!colorPicker.contains(event.target)) setColorMenuOpen(false);
+                });
+            } else if (colorToggle) {
+                colorToggle.disabled = true;
             }
 
             const yarnImage = yarnOptions?.yarn?.photos?.[0] || '';
@@ -909,7 +987,7 @@
                     const colorwayName = selectedColorway?.name || '';
                     const colorwayImage = selectedColorway?.image || '';
                     if (!colorwayId || !colorwayName) {
-                        colorGrid?.querySelector('[data-colorway-card]')?.focus();
+                        colorToggle?.focus();
                         alert('Please choose a yarn color before adding this item to your cart.');
                         return;
                     }
