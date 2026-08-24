@@ -147,11 +147,19 @@ export async function onRequestPost({ request, env }) {
       message: stripeError.message,
     });
 
+    // Give the storefront a useful but non-secret diagnostic. Never return
+    // request headers, API keys, or Stripe's raw response to the browser.
     if (stripeResponse.status === 401 || stripeResponse.status === 403) {
-      return json({ error: 'Stripe rejected the server API key. Check STRIPE_SECRET_KEY in Cloudflare.', code: 'stripe_auth_failed' }, 502);
+      return json({
+        error: 'Stripe rejected the server API key. Check STRIPE_SECRET_KEY in Cloudflare.',
+        code: 'stripe_auth_failed',
+      }, 502);
     }
 
-    return json({ error: 'Stripe rejected the checkout configuration.', code: stripeError.code || stripeError.type || 'stripe_checkout_failed' }, 502);
+    return json({
+      error: 'Stripe rejected the checkout configuration.',
+      code: stripeError.code || stripeError.type || 'stripe_checkout_failed',
+    }, 502);
   }
 
   if (!stripeData.url) {
