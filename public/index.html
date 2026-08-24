@@ -304,29 +304,179 @@
 
         <!-- CUSTOM PAGE -->
         <section id="custom" class="page-content">
-            <div class="max-w-4xl mx-auto">
-                <h2 class="text-3xl font-bold text-theme-blue border-b-2 border-theme-purple pb-2 inline-block mb-6">Custom Orders</h2>
-                
-                <div class="bg-theme-dark p-8 rounded-2xl border border-theme-darkblue flex flex-col md:flex-row gap-8 items-center">
-                    <div class="md:w-1/2">
-                        <i class="fa-solid fa-wand-magic-sparkles text-5xl text-theme-purple mb-4"></i>
-                        <h3 class="text-2xl font-semibold mb-4">Bring Your Idea to Life</h3>
-                        <p class="text-theme-gray mb-4">
-                            Don't see exactly what you're looking for? I love creating custom pieces tailored to your specific colors, sizes, and ideas.
-                        </p>
-                        <ul class="text-theme-light space-y-2 mb-6">
-                            <li><i class="fa-solid fa-check text-theme-blue mr-2"></i> Choose your own colors</li>
-                            <li><i class="fa-solid fa-check text-theme-blue mr-2"></i> Custom sizing available</li>
-                            <li><i class="fa-solid fa-check text-theme-blue mr-2"></i> Unique designs just for you</li>
-                        </ul>
-                    </div>
-                    
-                    <div class="md:w-1/2 bg-theme-black p-6 rounded-xl border border-theme-darkblue/30 w-full">
-                        <h4 class="text-xl font-medium text-theme-purple mb-4">Start a Custom Request</h4>
-                        <p class="text-sm text-theme-gray mb-4">Use the contact form and mention "Custom Request" in your message, or email directly to discuss pricing and timelines.</p>
-                        <a href="/contact" data-page-link="contact" class="block text-center w-full bg-theme-blue hover:bg-theme-darkblue text-white py-2 rounded-lg transition-colors">
-                            Go to Contact Form
-                        </a>
+            <div class="max-w-6xl mx-auto">
+                <div class="mb-8">
+                    <p class="text-sm font-semibold uppercase tracking-[0.2em] text-theme-blue mb-2">Made for you</p>
+                    <h2 class="text-3xl sm:text-4xl font-bold text-theme-light mb-3">Request a Custom Piece</h2>
+                    <p class="text-theme-gray max-w-3xl leading-relaxed">
+                        Share your idea, sizing, colors, and timing. I’ll review the request and contact you to confirm materials, pricing, and availability before any work begins.
+                    </p>
+                </div>
+
+                <div class="grid lg:grid-cols-[0.75fr_1.6fr] gap-8 items-start">
+                    <aside class="bg-theme-dark border border-theme-darkblue/30 rounded-2xl p-6 lg:sticky lg:top-32">
+                        <div class="w-12 h-12 rounded-xl bg-theme-purple/15 flex items-center justify-center mb-5">
+                            <i class="fa-solid fa-wand-magic-sparkles text-2xl text-theme-purple"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold text-theme-light mb-3">What happens next?</h3>
+                        <ol class="space-y-5 text-sm text-theme-gray">
+                            <li class="flex gap-3">
+                                <span class="w-7 h-7 shrink-0 rounded-full bg-theme-blue text-white flex items-center justify-center font-bold">1</span>
+                                <span><strong class="text-theme-light block mb-1">Send your idea</strong>Complete the request with sizing, colors, budget, and inspiration.</span>
+                            </li>
+                            <li class="flex gap-3">
+                                <span class="w-7 h-7 shrink-0 rounded-full bg-theme-blue text-white flex items-center justify-center font-bold">2</span>
+                                <span><strong class="text-theme-light block mb-1">Design review</strong>Your details are organized into a professional PDF for review.</span>
+                            </li>
+                            <li class="flex gap-3">
+                                <span class="w-7 h-7 shrink-0 rounded-full bg-theme-blue text-white flex items-center justify-center font-bold">3</span>
+                                <span><strong class="text-theme-light block mb-1">Quote & confirmation</strong>You’ll be contacted to confirm the final design, price, and timeline.</span>
+                            </li>
+                        </ol>
+                        <div class="mt-6 pt-5 border-t border-theme-darkblue/30 text-xs text-theme-gray leading-relaxed">
+                            <i class="fa-solid fa-circle-info text-theme-purple mr-1"></i>
+                            This form is a request for a quote, not a confirmed order or payment.
+                        </div>
+                    </aside>
+
+                    <div class="bg-theme-dark border border-theme-darkblue/30 rounded-2xl shadow-lg overflow-hidden">
+                        <div class="px-5 sm:px-8 py-6 border-b border-theme-darkblue/30 bg-theme-black/40">
+                            <h3 class="text-2xl font-semibold text-theme-light">Custom Order Request</h3>
+                            <p class="text-sm text-theme-gray mt-1">Fields marked <span class="text-theme-purple font-semibold">*</span> are required.</p>
+                        </div>
+
+                        <form id="customRequestForm" class="p-5 sm:p-8 space-y-8" onsubmit="submitCustomRequest(event)">
+                            <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" class="hidden">
+
+                            <fieldset class="space-y-4">
+                                <legend class="text-lg font-semibold text-theme-light mb-4 flex items-center gap-2">
+                                    <span class="w-8 h-8 rounded-lg bg-theme-blue/15 text-theme-blue flex items-center justify-center text-sm">1</span>
+                                    Contact information
+                                </legend>
+                                <div class="grid sm:grid-cols-2 gap-4">
+                                    <label class="block">
+                                        <span class="block text-sm font-medium text-theme-gray mb-1.5">Full name <span class="text-theme-purple">*</span></span>
+                                        <input name="name" type="text" required minlength="2" maxlength="100" autocomplete="name" placeholder="Your full name"
+                                            class="w-full bg-theme-black border border-theme-darkblue/30 rounded-lg px-4 py-3 text-theme-light placeholder:text-theme-gray/60 focus:outline-none focus:border-theme-purple focus:ring-1 focus:ring-theme-purple">
+                                    </label>
+                                    <label class="block">
+                                        <span class="block text-sm font-medium text-theme-gray mb-1.5">Email <span class="text-theme-purple">*</span></span>
+                                        <input name="email" type="email" required maxlength="180" autocomplete="email" placeholder="you@example.com"
+                                            class="w-full bg-theme-black border border-theme-darkblue/30 rounded-lg px-4 py-3 text-theme-light placeholder:text-theme-gray/60 focus:outline-none focus:border-theme-purple focus:ring-1 focus:ring-theme-purple">
+                                    </label>
+                                    <label class="block">
+                                        <span class="block text-sm font-medium text-theme-gray mb-1.5">Phone <span class="text-xs font-normal">(optional)</span></span>
+                                        <input name="phone" type="tel" maxlength="40" autocomplete="tel" placeholder="Best phone number"
+                                            class="w-full bg-theme-black border border-theme-darkblue/30 rounded-lg px-4 py-3 text-theme-light placeholder:text-theme-gray/60 focus:outline-none focus:border-theme-purple focus:ring-1 focus:ring-theme-purple">
+                                    </label>
+                                    <label class="block">
+                                        <span class="block text-sm font-medium text-theme-gray mb-1.5">Preferred contact method</span>
+                                        <select name="preferredContact" class="w-full bg-theme-black border border-theme-darkblue/30 rounded-lg px-4 py-3 text-theme-light focus:outline-none focus:border-theme-purple focus:ring-1 focus:ring-theme-purple">
+                                            <option value="Email">Email</option>
+                                            <option value="Phone">Phone</option>
+                                            <option value="Either">Either is fine</option>
+                                        </select>
+                                    </label>
+                                </div>
+                            </fieldset>
+
+                            <fieldset class="space-y-4">
+                                <legend class="text-lg font-semibold text-theme-light mb-4 flex items-center gap-2">
+                                    <span class="w-8 h-8 rounded-lg bg-theme-blue/15 text-theme-blue flex items-center justify-center text-sm">2</span>
+                                    Project details
+                                </legend>
+                                <div class="grid sm:grid-cols-2 gap-4">
+                                    <label class="block">
+                                        <span class="block text-sm font-medium text-theme-gray mb-1.5">What would you like made? <span class="text-theme-purple">*</span></span>
+                                        <select name="itemType" required class="w-full bg-theme-black border border-theme-darkblue/30 rounded-lg px-4 py-3 text-theme-light focus:outline-none focus:border-theme-purple focus:ring-1 focus:ring-theme-purple">
+                                            <option value="">Choose an item type</option>
+                                            <option>Cardigan</option>
+                                            <option>Sweater</option>
+                                            <option>Hat / Toboggan</option>
+                                            <option>Scarf</option>
+                                            <option>Winter Set</option>
+                                            <option>Blanket</option>
+                                            <option>Accessory</option>
+                                            <option>Other</option>
+                                        </select>
+                                    </label>
+                                    <label class="block">
+                                        <span class="block text-sm font-medium text-theme-gray mb-1.5">Who is it for?</span>
+                                        <input name="recipient" type="text" maxlength="80" placeholder="Adult, child, gift recipient, etc."
+                                            class="w-full bg-theme-black border border-theme-darkblue/30 rounded-lg px-4 py-3 text-theme-light placeholder:text-theme-gray/60 focus:outline-none focus:border-theme-purple focus:ring-1 focus:ring-theme-purple">
+                                    </label>
+                                    <label class="block">
+                                        <span class="block text-sm font-medium text-theme-gray mb-1.5">Size or measurements <span class="text-theme-purple">*</span></span>
+                                        <input name="size" type="text" required maxlength="80" placeholder="Example: Adult M, chest 38 in"
+                                            class="w-full bg-theme-black border border-theme-darkblue/30 rounded-lg px-4 py-3 text-theme-light placeholder:text-theme-gray/60 focus:outline-none focus:border-theme-purple focus:ring-1 focus:ring-theme-purple">
+                                    </label>
+                                    <label class="block">
+                                        <span class="block text-sm font-medium text-theme-gray mb-1.5">Fit / style preference</span>
+                                        <input name="fit" type="text" maxlength="80" placeholder="Fitted, relaxed, oversized, etc."
+                                            class="w-full bg-theme-black border border-theme-darkblue/30 rounded-lg px-4 py-3 text-theme-light placeholder:text-theme-gray/60 focus:outline-none focus:border-theme-purple focus:ring-1 focus:ring-theme-purple">
+                                    </label>
+                                </div>
+                                <label class="block">
+                                    <span class="block text-sm font-medium text-theme-gray mb-1.5">Preferred colors <span class="text-theme-purple">*</span></span>
+                                    <input name="colors" type="text" required maxlength="250" placeholder="Example: cream, sage green, warm brown"
+                                        class="w-full bg-theme-black border border-theme-darkblue/30 rounded-lg px-4 py-3 text-theme-light placeholder:text-theme-gray/60 focus:outline-none focus:border-theme-purple focus:ring-1 focus:ring-theme-purple">
+                                </label>
+                                <div class="grid sm:grid-cols-2 gap-4">
+                                    <label class="block">
+                                        <span class="block text-sm font-medium text-theme-gray mb-1.5">Budget <span class="text-xs font-normal">(optional)</span></span>
+                                        <input name="budget" type="text" maxlength="80" placeholder="Example: around $150"
+                                            class="w-full bg-theme-black border border-theme-darkblue/30 rounded-lg px-4 py-3 text-theme-light placeholder:text-theme-gray/60 focus:outline-none focus:border-theme-purple focus:ring-1 focus:ring-theme-purple">
+                                    </label>
+                                    <label class="block">
+                                        <span class="block text-sm font-medium text-theme-gray mb-1.5">Needed by <span class="text-xs font-normal">(optional)</span></span>
+                                        <input name="neededBy" type="date"
+                                            class="w-full bg-theme-black border border-theme-darkblue/30 rounded-lg px-4 py-3 text-theme-light focus:outline-none focus:border-theme-purple focus:ring-1 focus:ring-theme-purple">
+                                    </label>
+                                </div>
+                            </fieldset>
+
+                            <fieldset class="space-y-4">
+                                <legend class="text-lg font-semibold text-theme-light mb-4 flex items-center gap-2">
+                                    <span class="w-8 h-8 rounded-lg bg-theme-blue/15 text-theme-blue flex items-center justify-center text-sm">3</span>
+                                    Design brief
+                                </legend>
+                                <label class="block">
+                                    <span class="block text-sm font-medium text-theme-gray mb-1.5">Describe what you have in mind <span class="text-theme-purple">*</span></span>
+                                    <textarea name="description" required minlength="20" maxlength="3500" rows="7" placeholder="Describe the design, shape, stitch/style ideas, details you definitely want, and anything you want to avoid."
+                                        class="w-full bg-theme-black border border-theme-darkblue/30 rounded-lg px-4 py-3 text-theme-light placeholder:text-theme-gray/60 focus:outline-none focus:border-theme-purple focus:ring-1 focus:ring-theme-purple resize-y"></textarea>
+                                </label>
+                                <div class="grid sm:grid-cols-2 gap-4">
+                                    <label class="block">
+                                        <span class="block text-sm font-medium text-theme-gray mb-1.5">Inspiration link <span class="text-xs font-normal">(optional)</span></span>
+                                        <input name="inspirationUrl" type="url" maxlength="500" placeholder="https://..."
+                                            class="w-full bg-theme-black border border-theme-darkblue/30 rounded-lg px-4 py-3 text-theme-light placeholder:text-theme-gray/60 focus:outline-none focus:border-theme-purple focus:ring-1 focus:ring-theme-purple">
+                                    </label>
+                                    <label class="block">
+                                        <span class="block text-sm font-medium text-theme-gray mb-1.5">Additional reference link <span class="text-xs font-normal">(optional)</span></span>
+                                        <input name="additionalUrl" type="url" maxlength="500" placeholder="https://..."
+                                            class="w-full bg-theme-black border border-theme-darkblue/30 rounded-lg px-4 py-3 text-theme-light placeholder:text-theme-gray/60 focus:outline-none focus:border-theme-purple focus:ring-1 focus:ring-theme-purple">
+                                    </label>
+                                </div>
+                                <label class="block">
+                                    <span class="block text-sm font-medium text-theme-gray mb-1.5">Anything else? <span class="text-xs font-normal">(optional)</span></span>
+                                    <textarea name="notes" maxlength="1800" rows="4" placeholder="Allergies/sensitivities, special occasion, shipping considerations, or other helpful details."
+                                        class="w-full bg-theme-black border border-theme-darkblue/30 rounded-lg px-4 py-3 text-theme-light placeholder:text-theme-gray/60 focus:outline-none focus:border-theme-purple focus:ring-1 focus:ring-theme-purple resize-y"></textarea>
+                                </label>
+                            </fieldset>
+
+                            <div class="rounded-xl border border-theme-darkblue/30 bg-theme-black p-4">
+                                <label class="flex items-start gap-3 cursor-pointer">
+                                    <input name="consent" type="checkbox" required class="mt-1 w-4 h-4 accent-theme-purple">
+                                    <span class="text-sm text-theme-gray leading-relaxed">I understand this is a custom-order inquiry and give Cozy Loops permission to contact me about this request. <span class="text-theme-purple">*</span></span>
+                                </label>
+                            </div>
+
+                            <button id="customRequestSubmit" type="submit" class="w-full bg-gradient-to-r from-theme-blue to-theme-purple text-white font-bold py-3.5 px-5 rounded-lg hover:opacity-90 transition-opacity flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <i class="fa-solid fa-paper-plane"></i>
+                                <span>Send Custom Request</span>
+                            </button>
+                            <div id="customRequestStatus" class="hidden p-4 rounded-lg border text-sm font-medium" role="status" aria-live="polite"></div>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -1383,6 +1533,45 @@
         }
 
         // --- Form Handling ---
+        async function submitCustomRequest(event) {
+            event.preventDefault();
+            const form = document.getElementById('customRequestForm');
+            const button = document.getElementById('customRequestSubmit');
+            const status = document.getElementById('customRequestStatus');
+            if (!form || !button || !status) return;
+            if (!form.reportValidity()) return;
+
+            const original = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i><span>Preparing request…</span>';
+            status.classList.add('hidden');
+
+            const formData = new FormData(form);
+            const payload = Object.fromEntries(formData.entries());
+            payload.consent = formData.has('consent');
+
+            try {
+                const response = await fetch('/api/custom-request', {
+                    method: 'POST',
+                    headers: { 'content-type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json().catch(() => ({}));
+                if (!response.ok) throw new Error(result.error || 'Unable to send your request.');
+
+                status.innerHTML = `<strong>Request sent.</strong> Your reference number is <span class="font-mono">${result.requestId}</span>. I’ll review your custom request and contact you using the information provided.`;
+                status.className = 'p-4 rounded-lg border text-sm font-medium bg-green-50 border-green-700 text-green-900 block';
+                form.reset();
+            } catch (error) {
+                console.error('Custom request failed:', error);
+                status.textContent = error.message || 'We could not send your custom request right now. Please try again.';
+                status.className = 'p-4 rounded-lg border text-sm font-medium bg-red-50 border-red-700 text-red-900 block';
+            } finally {
+                button.disabled = false;
+                button.innerHTML = original;
+            }
+        }
+
         function submitForm(e) {
             e.preventDefault();
             

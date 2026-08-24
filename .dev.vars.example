@@ -5,3 +5,5 @@ STRIPE_CURRENCY=usd
 RAVELRY_USERNAME=replace_me
 RAVELRY_PASSWORD=replace_me
 YARN_PRICE=4.99
+# Custom-order PDF email delivery
+CUSTOM_REQUEST_FROM_EMAIL=Cozy Loops <custom@your-verified-domain.com>

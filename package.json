@@ -1,0 +1,11 @@
+{
+  "name": "cozy-loops-worker",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "pdf-lib": "^1.17.1"
+  },
+  "devDependencies": {
+    "wrangler": "^4.25.0"
+  }
+}

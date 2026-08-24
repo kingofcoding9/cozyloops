@@ -12,5 +12,11 @@
   },
   "vars": {
     "STRIPE_CURRENCY": "usd"
-  }
+  },
+  "send_email": [
+    {
+      "name": "EMAIL",
+      "destination_address": "cochrankayce99@gmail.com"
+    }
+  ]
 }
