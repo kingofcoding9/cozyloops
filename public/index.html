@@ -756,8 +756,8 @@
             const yarnConfig = getProductYarnConfig(product);
             const yarnPrice = Number(yarnOptions?.yarnPrice);
             const fitOptionsHtml = yarnConfig.hasGenderAdjustments
-                ? `<option value="">Choose fit</option>${yarnConfig.genderOptions.map(option => `<option value="${option.fit}" data-gender-skeins="${option.genderSkeins}" data-allowed-sizes="${option.allowedSizes ? [...option.allowedSizes].join(',') : '*'}">${option.fit} — +${option.genderSkeins} skein${option.genderSkeins === 1 ? '' : 's'}</option>`).join('')}`
-                : `<option value="Standard" data-gender-skeins="0" data-allowed-sizes="*">Standard — +0 skeins</option>`;
+                ? `<option value="">Choose fit</option>${yarnConfig.genderOptions.map(option => `<option value="${option.fit}" data-gender-skeins="${option.genderSkeins}" data-allowed-sizes="${option.allowedSizes ? [...option.allowedSizes].join(',') : '*'}">${option.fit}</option>`).join('')}`
+                : `<option value="Standard" data-gender-skeins="0" data-allowed-sizes="*">Standard</option>`;
             
             // Format Tags
             let tagsHtml = '';
@@ -774,7 +774,7 @@
                 <div class="p-4 flex flex-col flex-grow">
                     <h4 class="text-lg font-bold text-theme-light mb-1">${name}</h4>
                     <p class="text-theme-purple font-semibold mb-1">${typeof price === 'number' ? 'Base $'+price.toFixed(2) : price}</p>
-                    ${typeof price === 'number' && yarnOptions ? `<p class="text-xs text-theme-gray mb-2">Yarn: $${Number(yarnOptions.yarnPrice).toFixed(2)} per skein</p>` : ''}
+                    ${typeof price === 'number' && yarnOptions ? `<p class="text-xs text-theme-gray mb-2">Yarn adds $${Number(yarnOptions.yarnPrice).toFixed(2)} per skein</p>` : ''}
                     <p class="text-sm text-theme-gray mb-4 flex-grow line-clamp-3">${description}</p>
                     ${tagsHtml ? `<div class="mb-4">${tagsHtml}</div>` : ''}
                     <div class="mt-auto space-y-2">
@@ -785,7 +785,7 @@
                                     ${['XS','S','M','L','XL','2X'].map(size => {
                                         const skeins = yarnConfig.sizeSkeins[size];
                                         const labels = { XS:'Extra Small (XS)', S:'Small (S)', M:'Medium (M)', L:'Large (L)', XL:'Extra Large (XL)', '2X':'2X' };
-                                        return `<option value="${size}" data-size-skeins="${skeins ?? ''}" ${size === 'M' ? 'selected' : ''} ${skeins == null ? 'disabled' : ''}>${labels[size]}${skeins != null ? ` — ${skeins} size skein${skeins === 1 ? '' : 's'}` : ' — not configured'}</option>`;
+                                        return `<option value="${size}" data-size-skeins="${skeins ?? ''}" ${size === 'M' ? 'selected' : ''} ${skeins == null ? 'disabled' : ''}>${labels[size]}${skeins == null ? ' — unavailable' : ''}</option>`;
                                     }).join('')}
                                 </select>
                             </label>
@@ -799,19 +799,16 @@
                                 <div data-price-preview class="text-sm rounded-lg bg-theme-dark border border-theme-darkblue/30 px-3 py-2 text-theme-gray">
                                     Choose a size${yarnConfig.hasGenderAdjustments ? ' and fit' : ''} to calculate yarn cost
                                 </div>`
-                                : `<div class="text-sm rounded-lg bg-red-50 border border-red-300 px-3 py-2 text-red-800">Yarn quantity is not configured for this product in the Google Sheet.</div>`}
+                                : `<div class="text-sm rounded-lg bg-red-50 border border-red-300 px-3 py-2 text-red-800">This product is temporarily unavailable for online ordering.</div>`}
                             <div class="rounded-lg border border-theme-darkblue/30 bg-theme-dark p-3 space-y-2">
-                                <div class="flex items-center justify-between gap-2">
-                                    <div class="min-w-0">
-                                        <p class="text-xs uppercase tracking-wide text-theme-gray">Yarn</p>
-                                        <p class="font-semibold text-theme-light truncate">I Love This Yarn! <span class="font-normal text-theme-gray">by Hobby Lobby</span></p>
-                                    </div>
-                                    <button type="button" data-yarn-view class="hidden shrink-0 text-theme-blue hover:text-theme-purple text-sm underline">View yarn</button>
+                                <div class="min-w-0">
+                                    <p class="text-sm font-semibold text-theme-light">Choose yarn color</p>
+                                    <p class="text-xs text-theme-gray">Search, preview, then select a color.</p>
                                 </div>
                                 <div class="block text-sm font-medium text-theme-light">
                                     <div class="flex items-center justify-between gap-2 mb-2">
                                         <span>Color</span>
-                                        <span class="text-xs font-normal text-theme-gray">Search by color name</span>
+                                        <span class="text-xs font-normal text-theme-gray whitespace-nowrap">Search colors</span>
                                     </div>
                                     <input type="hidden" data-colorway-select value="">
                                     <div data-colorway-picker class="relative z-30">
@@ -832,15 +829,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <button type="button" data-color-preview class="hidden w-full items-center gap-3 text-left rounded-lg border border-theme-darkblue/30 bg-theme-black p-2 hover:border-theme-purple transition-colors">
-                                    <img data-color-image src="" alt="" class="w-14 h-14 rounded-md object-cover bg-theme-dark">
-                                    <span class="min-w-0">
-                                        <span class="block text-xs text-theme-gray">Selected color</span>
-                                        <span data-color-name class="block font-medium text-theme-light truncate"></span>
-                                        <span class="block text-xs text-theme-blue">Tap to zoom</span>
-                                    </span>
-                                </button>
-                                ${yarnOptionsError ? '<p class="text-xs text-red-700">Ravelry colors could not be loaded. Refresh and try again.</p>' : ''}
+                                ${yarnOptionsError ? '<p class="text-xs text-red-700">Yarn colors could not be loaded. Refresh and try again.</p>' : ''}
                             </div>
                             <button type="button" data-cart-button class="w-full bg-gradient-to-r from-theme-blue to-theme-purple text-white font-semibold py-2.5 rounded-lg hover:opacity-90 transition-opacity">
                                 <i class="fa-solid fa-cart-plus mr-2"></i>Add to Cart
@@ -882,7 +871,7 @@
                 const total = configuredUnitTotal(price, totalSkeins);
                 if (total == null) return;
                 const yarnCost = totalSkeins * Number(yarnOptions.yarnPrice);
-                pricePreview.innerHTML = `${sizeSkeins} size + ${genderSkeins} gender = <strong>${totalSkeins} skein${totalSkeins === 1 ? '' : 's'}</strong><br>${totalSkeins} × $${Number(yarnOptions.yarnPrice).toFixed(2)} yarn = $${yarnCost.toFixed(2)}<br><strong class="text-theme-purple">Estimated item total: $${total.toFixed(2)}</strong>`;
+                pricePreview.innerHTML = `Yarn needed: <strong>${totalSkeins} skein${totalSkeins === 1 ? '' : 's'}</strong> ($${yarnCost.toFixed(2)})<br><strong class="text-theme-purple">Estimated total: $${total.toFixed(2)}</strong>`;
             };
             if (sizeSelect) sizeSelect.addEventListener('change', updatePricePreview);
             if (fitSelect) fitSelect.addEventListener('change', updatePricePreview);
@@ -898,10 +887,6 @@
             const colorSearch = card.querySelector('[data-colorway-search]');
             const colorOptions = card.querySelector('[data-colorway-options]');
             const colorEmpty = card.querySelector('[data-colorway-empty]');
-            const colorPreview = card.querySelector('[data-color-preview]');
-            const colorImage = card.querySelector('[data-color-image]');
-            const colorName = card.querySelector('[data-color-name]');
-            const yarnView = card.querySelector('[data-yarn-view]');
             let selectedColorway = null;
 
             const setColorMenuOpen = (open) => {
@@ -925,19 +910,11 @@
 
                 if (colorway.image) {
                     colorToggleImage.src = colorway.image;
-                    colorToggleImage.alt = `${colorway.name} I Love This Yarn!`;
+                    colorToggleImage.alt = `${colorway.name} yarn color`;
                     colorToggleImage.classList.remove('hidden');
-                    colorImage.src = colorway.image;
-                    colorImage.alt = `${colorway.name} I Love This Yarn!`;
-                    colorPreview.classList.remove('hidden');
-                    colorPreview.classList.add('flex');
-                    colorPreview.onclick = () => openImageViewer(colorway.image, `${colorway.name} — I Love This Yarn!`);
                 } else {
                     colorToggleImage.classList.add('hidden');
-                    colorPreview.classList.add('hidden');
-                    colorPreview.classList.remove('flex');
                 }
-                colorName.textContent = colorway.name;
                 setColorMenuOpen(false);
             };
 
@@ -945,38 +922,64 @@
                 if (!colorOptions) return;
                 colorOptions.replaceChildren();
                 colorways.forEach(colorway => {
-                    const choice = document.createElement('button');
-                    choice.type = 'button';
-                    choice.dataset.colorwayOption = 'true';
-                    choice.dataset.searchName = String(colorway.name || '').toLowerCase();
-                    choice.setAttribute('role', 'option');
-                    choice.setAttribute('aria-selected', selectedColorway?.id === colorway.id ? 'true' : 'false');
-                    choice.className = 'w-full flex items-center gap-3 rounded-md px-2 py-2 text-left hover:bg-theme-dark focus:outline-none focus:bg-theme-dark';
+                    const row = document.createElement('div');
+                    row.dataset.colorwayOption = 'true';
+                    row.dataset.searchName = String(colorway.name || '').toLowerCase();
+                    row.setAttribute('role', 'option');
+                    row.setAttribute('aria-selected', selectedColorway?.id === colorway.id ? 'true' : 'false');
+                    row.className = 'flex items-start gap-2 rounded-md px-2 py-2 hover:bg-theme-dark';
 
                     if (colorway.image) {
                         const img = document.createElement('img');
                         img.src = colorway.image;
-                        img.alt = `${colorway.name} I Love This Yarn!`;
+                        img.alt = `${colorway.name} yarn color`;
                         img.loading = 'lazy';
                         img.className = 'w-11 h-11 shrink-0 rounded-md object-cover bg-theme-dark';
-                        choice.appendChild(img);
+                        row.appendChild(img);
                     } else {
                         const placeholder = document.createElement('span');
                         placeholder.className = 'w-11 h-11 shrink-0 rounded-md bg-theme-dark flex items-center justify-center text-[10px] text-theme-gray';
                         placeholder.textContent = 'No photo';
-                        choice.appendChild(placeholder);
+                        row.appendChild(placeholder);
                     }
 
+                    const content = document.createElement('div');
+                    content.className = 'min-w-0 flex-1';
                     const label = document.createElement('span');
-                    label.className = 'min-w-0 flex-1 text-sm font-medium text-theme-light truncate';
+                    label.className = 'block text-sm font-medium text-theme-light break-words leading-tight';
                     label.textContent = colorway.name;
-                    choice.appendChild(label);
-                    choice.addEventListener('click', () => applyColorSelection(colorway));
-                    colorOptions.appendChild(choice);
+                    content.appendChild(label);
+                    row.appendChild(content);
+
+                    const actions = document.createElement('div');
+                    actions.className = 'mt-2 flex items-center gap-2';
+
+                    const viewButton = document.createElement('button');
+                    viewButton.type = 'button';
+                    viewButton.textContent = 'View yarn';
+                    viewButton.className = 'flex-1 whitespace-nowrap rounded-md border border-theme-blue/50 px-2 py-1.5 text-xs font-medium text-theme-blue hover:bg-theme-blue hover:text-white disabled:opacity-40 disabled:cursor-not-allowed';
+                    viewButton.disabled = !colorway.image;
+                    viewButton.addEventListener('click', event => {
+                        event.stopPropagation();
+                        if (colorway.image) openImageViewer(colorway.image, colorway.name);
+                    });
+                    actions.appendChild(viewButton);
+
+                    const selectButton = document.createElement('button');
+                    selectButton.type = 'button';
+                    selectButton.dataset.colorwaySelectAction = 'true';
+                    selectButton.textContent = selectedColorway?.id === colorway.id ? 'Selected' : 'Select yarn';
+                    selectButton.className = 'flex-1 whitespace-nowrap rounded-md bg-theme-blue px-2 py-1.5 text-xs font-semibold text-white hover:bg-theme-darkblue';
+                    selectButton.addEventListener('click', event => {
+                        event.stopPropagation();
+                        applyColorSelection(colorway);
+                    });
+                    actions.appendChild(selectButton);
+                    content.appendChild(actions);
+                    colorOptions.appendChild(row);
                 });
                 colorEmpty?.classList.toggle('hidden', colorways.length !== 0);
             };
-
             const filterColorways = (query) => {
                 if (!yarnOptions) return;
                 const needle = String(query || '').trim().toLowerCase();
@@ -991,7 +994,7 @@
                 colorSearch?.addEventListener('keydown', event => {
                     if (event.key === 'Escape') setColorMenuOpen(false);
                     if (event.key === 'Enter') {
-                        const first = colorOptions?.querySelector('[data-colorway-option]');
+                        const first = colorOptions?.querySelector('[data-colorway-select-action]');
                         if (first) {
                             event.preventDefault();
                             first.click();
@@ -1003,12 +1006,6 @@
                 });
             } else if (colorToggle) {
                 colorToggle.disabled = true;
-            }
-
-            const yarnImage = yarnOptions?.yarn?.photos?.[0] || '';
-            if (yarnView && yarnImage) {
-                yarnView.classList.remove('hidden');
-                yarnView.addEventListener('click', () => openImageViewer(yarnImage, 'I Love This Yarn! — Hobby Lobby'));
             }
 
             const cartButton = card.querySelector('[data-cart-button]');
@@ -1029,7 +1026,7 @@
                     }
                     if (!fit || !Number.isFinite(genderSkeinCount) || genderSkeinCount < 0) {
                         fitSelect?.focus();
-                        alert('Please choose a fit with a configured gender yarn adjustment.');
+                        alert('Please choose an available fit.');
                         return;
                     }
                     const colorwayId = colorSelect?.value || '';
@@ -1218,8 +1215,8 @@
                             </div>
                             <p class="text-sm text-theme-gray">Size: ${item.size}</p>
                             <p class="text-sm text-theme-gray">Fit: ${item.fit}</p>
-                            <p class="text-sm text-theme-gray">Yarn: I Love This Yarn! — ${item.colorwayName || 'Not selected'}</p>
-                            <p class="text-sm text-theme-gray">${item.sizeSkeinCount} size + ${item.genderSkeinCount} gender = ${item.skeinCount} skein${Number(item.skeinCount) === 1 ? '' : 's'}</p>
+                            <p class="text-sm text-theme-gray">Yarn color: ${item.colorwayName || 'Not selected'}</p>
+                            <p class="text-sm text-theme-gray">Yarn needed: ${item.skeinCount} skein${Number(item.skeinCount) === 1 ? '' : 's'}</p>
                             <p class="text-sm text-theme-gray">${item.skeinCount} × $${Number(yarnOptions?.yarnPrice || 0).toFixed(2)} = $${yarnCost.toFixed(2)}</p>
                             <p class="text-sm font-semibold text-theme-purple">$${unitPrice.toFixed(2)} each including yarn</p>
                             <div class="mt-2 inline-flex items-center border border-theme-darkblue/30 rounded-lg overflow-hidden">
