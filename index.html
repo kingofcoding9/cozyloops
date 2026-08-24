@@ -151,6 +151,7 @@
 
     <!-- Main Content Area -->
     <main class="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div id="checkoutStatus" class="hidden mb-6 max-w-3xl mx-auto p-4 rounded-xl border text-center font-medium" role="status"></div>
         
         <!-- HOME PAGE -->
         <section id="home" class="page-content active">
@@ -363,6 +364,9 @@
             // Setup Search Listener
             document.getElementById('searchInput').addEventListener('input', filterProducts);
             
+            // Show Stripe return state, if Checkout redirected back here.
+            handleCheckoutReturn();
+
             // Load products via JSONP immediately
             loadProductsJSONP();
         });
@@ -588,11 +592,28 @@
                     <p class="text-theme-purple font-semibold mb-2">${typeof price === 'number' ? '$'+price.toFixed(2) : price}</p>
                     <p class="text-sm text-theme-gray mb-4 flex-grow line-clamp-3">${description}</p>
                     ${tagsHtml ? `<div class="mb-4">${tagsHtml}</div>` : ''}
-                    <button class="w-full mt-auto bg-theme-dark border border-theme-blue text-theme-blue hover:bg-theme-blue hover:text-white py-2 rounded transition-colors" onclick="switchPage('contact'); document.getElementById('message').value = 'I am interested in the ${name}.'">
-                        Inquire
-                    </button>
+                    <div class="mt-auto space-y-2">
+                        ${typeof price === 'number' ? `
+                            <button type="button" data-buy-button class="w-full bg-gradient-to-r from-theme-blue to-theme-purple text-white font-semibold py-2.5 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-wait">
+                                <i class="fa-solid fa-lock mr-2"></i>Buy Now
+                            </button>` : ''}
+                        <button type="button" data-inquire-button class="w-full bg-theme-dark border border-theme-blue text-theme-blue hover:bg-theme-blue hover:text-white py-2 rounded-lg transition-colors">
+                            Inquire
+                        </button>
+                    </div>
                 </div>
             `;
+
+            const buyButton = card.querySelector('[data-buy-button]');
+            if (buyButton) {
+                buyButton.addEventListener('click', () => startCheckout(name, buyButton));
+            }
+
+            card.querySelector('[data-inquire-button]').addEventListener('click', () => {
+                switchPage('contact');
+                document.getElementById('message').value = `I am interested in the ${name}.`;
+            });
+
             return card;
         }
 
@@ -659,6 +680,53 @@
 
             // Render filtered results and expand them
             renderCategories(filteredCategories, true);
+        }
+
+        // --- Stripe Checkout ---
+        async function startCheckout(productName, button) {
+            const originalHtml = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Opening checkout...';
+
+            try {
+                const response = await fetch('/api/checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ productName })
+                });
+
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok || !data.url) {
+                    throw new Error(data.error || 'Unable to start checkout.');
+                }
+
+                window.location.assign(data.url);
+            } catch (error) {
+                console.error('Checkout error:', error);
+                showCheckoutStatus(error.message || 'Unable to start checkout. Please try again.', 'error');
+                button.disabled = false;
+                button.innerHTML = originalHtml;
+            }
+        }
+
+        function showCheckoutStatus(message, type = 'success') {
+            const status = document.getElementById('checkoutStatus');
+            status.textContent = message;
+            status.className = type === 'success'
+                ? 'mb-6 max-w-3xl mx-auto p-4 rounded-xl border text-center font-medium bg-green-50 border-green-700 text-green-900'
+                : 'mb-6 max-w-3xl mx-auto p-4 rounded-xl border text-center font-medium bg-red-50 border-red-700 text-red-900';
+        }
+
+        function handleCheckoutReturn() {
+            const params = new URLSearchParams(window.location.search);
+            const checkout = params.get('checkout');
+            if (checkout === 'success') {
+                showCheckoutStatus('Payment received — thank you! Your order has been submitted.');
+                history.replaceState({}, '', window.location.pathname);
+            } else if (checkout === 'cancelled') {
+                showCheckoutStatus('Checkout was cancelled. You were not charged.', 'error');
+                history.replaceState({}, '', window.location.pathname);
+            }
         }
 
         // --- Form Handling ---
