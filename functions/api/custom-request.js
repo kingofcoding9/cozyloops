@@ -224,28 +224,17 @@ async function buildPdf(data, id, submittedAt, logoBytes) {
     if (data.additionalUrl) field('Additional reference link', data.additionalUrl);
   }
 
-  ensure(54);
-  page.drawText('This document is a request for a quote and design discussion; it is not a confirmed order or final price.', {
-    x: MARGIN, y: 35, size: 7.5, font: regular, color: COLORS.muted,
-  });
-
   const pages = pdf.getPages();
   pages.forEach((p, index) => {
+    p.drawText('This document is a request for a quote and design discussion; it is not a confirmed order or final price.', {
+      x: MARGIN, y: 34, size: 7.5, font: regular, color: COLORS.muted,
+    });
     p.drawText(`Cozy Loops • ${id} • Page ${index + 1} of ${pages.length}`, {
-      x: MARGIN, y: 20, size: 7, font: regular, color: COLORS.muted,
+      x: MARGIN, y: 19, size: 7, font: regular, color: COLORS.muted,
     });
   });
 
   return new Uint8Array(await pdf.save());
-}
-
-function bytesToBase64(bytes) {
-  let binary = '';
-  const chunk = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunk) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
-  }
-  return btoa(binary);
 }
 
 function escapeHtml(value) {
@@ -285,7 +274,7 @@ async function sendEmail(env, data, id, pdfBytes) {
     text: `New Cozy Loops custom request ${id} from ${data.name} (${data.email}). The complete request is attached as a PDF.`,
     attachments: [{
       filename: `Cozy-Loops-Custom-Request-${id}.pdf`,
-      content: bytesToBase64(pdfBytes),
+      content: pdfBytes,
       type: 'application/pdf',
       disposition: 'attachment',
     }],
