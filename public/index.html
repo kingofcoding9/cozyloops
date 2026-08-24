@@ -108,7 +108,16 @@
 
         /* Product Card Hover Effect */
         .product-card {
+            position: relative;
+            z-index: 0;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        /* The searchable yarn menu is absolutely positioned and can extend into
+           the next grid row. Raise the entire card while its menu is open so
+           later product cards cannot paint over it. */
+        .product-card.yarn-menu-open {
+            z-index: 80;
         }
         
         .product-card:hover {
@@ -860,6 +869,7 @@
                 if (!colorMenu || !colorToggle) return;
                 colorMenu.classList.toggle('hidden', !open);
                 colorToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+                card.classList.toggle('yarn-menu-open', open);
                 if (open && colorSearch) {
                     colorSearch.value = '';
                     filterColorways('');
