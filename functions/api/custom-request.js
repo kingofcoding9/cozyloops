@@ -1,4 +1,5 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import logoEmailBytes from '../../public/logo-email.png';
 
 const RECIPIENT_EMAIL = 'cochrankayce99@gmail.com';
 const MAX_BODY_BYTES = 64 * 1024;
@@ -294,13 +295,7 @@ export async function onRequestPost({ request, env }) {
 
     const id = requestId();
     const submittedAt = new Date();
-    let logoBytes = null;
-    try {
-      const logoResponse = await env.ASSETS.fetch(new Request(new URL('/logo-email.png', request.url)));
-      if (logoResponse.ok) logoBytes = new Uint8Array(await logoResponse.arrayBuffer());
-    } catch { /* PDF remains branded without logo */ }
-
-    const pdfBytes = await buildPdf(data, id, submittedAt, logoBytes);
+    const pdfBytes = await buildPdf(data, id, submittedAt, new Uint8Array(logoEmailBytes));
     await sendEmail(env, data, id, pdfBytes);
 
     return json({ ok: true, requestId: id, message: 'Your custom request was sent successfully.' });

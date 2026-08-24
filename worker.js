@@ -1,3 +1,6 @@
+import indexHtml from './public/index.html';
+import logoBytes from './public/logo.png';
+import logoEmailBytes from './public/logo-email.png';
 import { onRequestPost as createCheckout } from './functions/api/checkout.js';
 import { onRequestPost as handleWebhook } from './functions/api/webhook.js';
 import { onRequestGet as getProducts } from './functions/api/products.js';
@@ -53,15 +56,38 @@ export default {
       return json({ error: 'Not found.' }, 404);
     }
 
-    // Clean, shareable storefront routes all render the SPA entry point.
-    // Static files continue to be served normally by the assets binding.
-    const storefrontRoutes = new Set(['/', '/shop', '/custom', '/contact', '/about']);
     const normalizedPath = url.pathname.length > 1 ? url.pathname.replace(/\/+$/, '') : url.pathname;
-    if (storefrontRoutes.has(normalizedPath) && (request.method === 'GET' || request.method === 'HEAD')) {
-      const indexUrl = new URL('/', url);
-      return env.ASSETS.fetch(new Request(indexUrl, request));
+
+    if ((request.method === 'GET' || request.method === 'HEAD') && normalizedPath === '/logo.png') {
+      return new Response(request.method === 'HEAD' ? null : logoBytes, {
+        headers: {
+          'content-type': 'image/png',
+          'cache-control': 'public, max-age=86400',
+        },
+      });
     }
 
-    return env.ASSETS.fetch(request);
+    if ((request.method === 'GET' || request.method === 'HEAD') && normalizedPath === '/logo-email.png') {
+      return new Response(request.method === 'HEAD' ? null : logoEmailBytes, {
+        headers: {
+          'content-type': 'image/png',
+          'cache-control': 'public, max-age=86400',
+        },
+      });
+    }
+
+    // Clean, shareable storefront routes all render the bundled SPA entry point.
+    const storefrontRoutes = new Set(['/', '/shop', '/custom', '/contact', '/about']);
+    if (storefrontRoutes.has(normalizedPath) && (request.method === 'GET' || request.method === 'HEAD')) {
+      return new Response(request.method === 'HEAD' ? null : indexHtml, {
+        status: 200,
+        headers: {
+          'content-type': 'text/html; charset=utf-8',
+          'cache-control': 'no-cache',
+        },
+      });
+    }
+
+    return json({ error: 'Not found.' }, 404);
   },
 };
