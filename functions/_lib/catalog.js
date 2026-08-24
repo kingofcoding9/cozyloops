@@ -1,6 +1,6 @@
 export const CATALOG_URL = 'https://script.google.com/macros/s/AKfycbzIO6Cwz-cxCDBpFMPrD3r6yTSDIU9W80jPxN6Fa0FeeMWWg8fZ2blLhPiAyKJNwQ4r4g/exec';
 
-export async function getTrustedProduct(productName) {
+export async function getCatalog() {
   const response = await fetch(CATALOG_URL, {
     headers: { 'Accept': 'application/json' },
     cf: { cacheTtl: 60, cacheEverything: true },
@@ -15,6 +15,11 @@ export async function getTrustedProduct(productName) {
     throw new Error('Catalog response was not an array');
   }
 
+  return products;
+}
+
+export async function getTrustedProduct(productName) {
+  const products = await getCatalog();
   const wanted = String(productName || '').trim().toLowerCase();
   const matches = products.filter((product) =>
     String(product?.Name || '').trim().toLowerCase() === wanted

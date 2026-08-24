@@ -354,7 +354,8 @@
         document.getElementById('year').textContent = new Date().getFullYear();
 
         // --- State Management ---
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbzIO6Cwz-cxCDBpFMPrD3r6yTSDIU9W80jPxN6Fa0FeeMWWg8fZ2blLhPiAyKJNwQ4r4g/exec';
+        const CONTACT_FORM_URL = 'https://script.google.com/macros/s/AKfycbzIO6Cwz-cxCDBpFMPrD3r6yTSDIU9W80jPxN6Fa0FeeMWWg8fZ2blLhPiAyKJNwQ4r4g/exec';
+
         let allProducts = [];
         let categories = {}; // Groups products by Type
         let uniqueTags = new Set();
@@ -367,8 +368,8 @@
             // Show Stripe return state, if Checkout redirected back here.
             handleCheckoutReturn();
 
-            // Load products via JSONP immediately
-            loadProductsJSONP();
+            // Load products through the same-origin Cloudflare API
+            loadProducts();
         });
 
         // --- Navigation Logic ---
@@ -502,67 +503,42 @@
             container.classList.remove('hidden');
         }
 
-        function loadProductsJSONP() {
+        async function loadProducts() {
             const loader = document.getElementById('shopLoader');
             const errorDiv = document.getElementById('shopError');
             const container = document.getElementById('shopContainer');
-            
+
             loader.style.display = 'flex';
             errorDiv.classList.add('hidden');
             container.classList.add('hidden');
 
-            // Generate a unique callback function name
-            const callbackName = 'handleGASData_' + Math.round(100000 * Math.random());
+            try {
+                const response = await fetch('/api/products', {
+                    headers: { 'Accept': 'application/json' }
+                });
+                const data = await response.json();
 
-            // Define the global callback function
-            window[callbackName] = function(data) {
-                console.log("JSONP Data received successfully");
-                
-                // Cleanup script tag and global function
-                document.body.removeChild(script);
-                delete window[callbackName];
-                clearTimeout(timeoutId);
+                if (!response.ok) {
+                    throw new Error(data?.error || `Product request failed with ${response.status}`);
+                }
 
                 if (Array.isArray(data) && data.length > 0) {
                     allProducts = data;
                 } else {
-                     console.warn('Data received was empty or not an array.');
-                     allProducts = [];
+                    console.warn('Product data was empty or not an array.');
+                    allProducts = [];
                 }
-                
-                loader.style.display = 'none';
+
                 groupProducts(allProducts);
-                populateDropdowns(); // Populate the filters after grouping
+                populateDropdowns();
                 renderCategories();
-            };
-
-            // Setup JSONP script tag
-            const script = document.createElement('script');
-            // Append the callback parameter to the URL
-            script.src = `${GAS_URL}?callback=${callbackName}`;
-            
-            // Error handling for script load failure
-            script.onerror = function() {
-                console.error("JSONP Script failed to load.");
-                document.body.removeChild(script);
-                delete window[callbackName];
-                clearTimeout(timeoutId);
-                
-                loader.style.display = 'none';
+            } catch (error) {
+                console.error('Product load failed:', error);
                 errorDiv.classList.remove('hidden');
-                errorDiv.innerText = "Failed to load products. Check network connection and script URL.";
-            };
-
-            // Timeout to prevent hanging if script never loads/executes
-            const timeoutId = setTimeout(() => {
-                if (window[callbackName]) {
-                    console.error("JSONP Request timed out.");
-                    script.onerror();
-                }
-            }, 10000); // 10 seconds timeout
-
-            // Inject the script to trigger the request
-            document.body.appendChild(script);
+                errorDiv.innerText = 'Failed to load products. Please try again in a moment.';
+            } finally {
+                loader.style.display = 'none';
+            }
         }
 
         function createProductCard(product) {
@@ -750,7 +726,7 @@
             }
             
             // Send Data to GAS doPost
-            fetch(GAS_URL, {
+            fetch(CONTACT_FORM_URL, {
                 method: 'POST',
                 body: data,
                 // no-cors is often required for posting to GAS without preflight issues, 
