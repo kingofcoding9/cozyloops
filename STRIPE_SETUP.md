@@ -52,3 +52,20 @@ Copy that endpoint's `whsec_...` signing secret into Cloudflare as `STRIPE_WEBHO
 6. Confirm the event appears in Cloudflare Worker logs.
 
 The webhook currently verifies and logs completed orders. Persistent fulfillment/notifications can be added after choosing where orders should be stored.
+
+## Product yarn-count columns
+
+The storefront/checkout supports additive yarn requirements from the Google Sheet. For each product, use these optional per-size columns:
+
+- `XS Skein Count`
+- `S Skein Count`
+- `M Skein Count`
+- `L Skein Count`
+- `XL Skein Count`
+- `2X Skein Count`
+
+`Female` and `Male` are treated as gender skein adjustments, not total skein counts. The checkout calculation is:
+
+`total skeins = selected size skein count + selected gender adjustment`
+
+`Yarn Skein Count` remains a temporary fallback base size count for rows that have not yet been migrated to the per-size columns.

@@ -28,27 +28,69 @@ function normalizeName(value) {
   return String(value || '').trim().toLowerCase();
 }
 
-function positiveNumber(value) {
+function nonNegativeNumber(value) {
+  if (value === '' || value == null) return null;
   const number = Number(value);
-  return Number.isFinite(number) && number > 0 ? number : null;
+  return Number.isFinite(number) && number >= 0 ? number : null;
 }
 
-function getSkeinConfiguration(product, requestedFit) {
-  const general = positiveNumber(product['Yarn Skein Count']);
-  const female = positiveNumber(product.Female);
-  const male = positiveNumber(product.Male);
-  const hasFitCounts = female != null || male != null;
+function positiveNumber(value) {
+  const number = nonNegativeNumber(value);
+  return number != null && number > 0 ? number : null;
+}
 
-  if (hasFitCounts) {
-    if (requestedFit === 'Female' && female != null) return { fit: 'Female', skeins: female };
-    if (requestedFit === 'Male' && male != null) return { fit: 'Male', skeins: male };
+const SIZE_SKEIN_COLUMNS = {
+  XS: 'XS Skein Count',
+  S: 'S Skein Count',
+  M: 'M Skein Count',
+  L: 'L Skein Count',
+  XL: 'XL Skein Count',
+  '2X': '2X Skein Count',
+};
+
+function parseAvailableSizes(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+  const sizes = new Set(
+    raw.split(',')
+      .map((size) => size.trim().toUpperCase())
+      .filter((size) => VALID_SIZES.has(size))
+  );
+  return sizes.size ? sizes : new Set();
+}
+
+function getSkeinConfiguration(product, requestedSize, requestedFit) {
+  const sizeSpecific = positiveNumber(product[SIZE_SKEIN_COLUMNS[requestedSize]]);
+  const generalFallback = positiveNumber(product['Yarn Skein Count']);
+  const sizeSkeins = sizeSpecific ?? generalFallback;
+  if (sizeSkeins == null) return null;
+
+  const femaleAdjustment = nonNegativeNumber(product.Female);
+  const maleAdjustment = nonNegativeNumber(product.Male);
+  const hasGenderAdjustments = femaleAdjustment != null || maleAdjustment != null;
+
+  let genderSkeins = 0;
+  if (hasGenderAdjustments) {
+    if (requestedFit === 'Female' && femaleAdjustment != null) genderSkeins = femaleAdjustment;
+    else if (requestedFit === 'Male' && maleAdjustment != null) genderSkeins = maleAdjustment;
+    else return null;
+
+    const availableSizes = parseAvailableSizes(product[`${requestedFit} Sizes Available`]);
+    if (availableSizes && !availableSizes.has(requestedSize)) return null;
+  } else if (requestedFit !== 'Standard') {
     return null;
   }
 
-  if (general != null && requestedFit === 'Standard') {
-    return { fit: 'Standard', skeins: general };
-  }
-  return null;
+  const skeins = sizeSkeins + genderSkeins;
+  if (!Number.isInteger(skeins) || skeins < 1) return null;
+
+  return {
+    fit: hasGenderAdjustments ? requestedFit : 'Standard',
+    sizeSkeins,
+    genderSkeins,
+    skeins,
+    usedFallback: sizeSpecific == null && generalFallback != null,
+  };
 }
 
 export async function onRequestPost({ request, env }) {
@@ -129,9 +171,9 @@ export async function onRequestPost({ request, env }) {
       return json({ error: 'A product in your cart has an invalid price.' }, 502);
     }
 
-    const skeinConfig = getSkeinConfiguration(product, requested.fit);
+    const skeinConfig = getSkeinConfiguration(product, requested.size, requested.fit);
     if (!skeinConfig || !Number.isInteger(skeinConfig.skeins) || skeinConfig.skeins < 1) {
-      return json({ error: `Yarn quantity is not configured for ${product.Name} (${requested.fit}).` }, 400);
+      return json({ error: `Yarn quantity is not configured for ${product.Name} (${requested.size}, ${requested.fit}).` }, 400);
     }
 
     const colorway = colorwaysById.get(requested.colorwayId);
@@ -146,6 +188,8 @@ export async function onRequestPost({ request, env }) {
       baseUnitAmount: Math.round(basePrice * 100),
       size: requested.size,
       fit: skeinConfig.fit,
+      sizeSkeins: skeinConfig.sizeSkeins,
+      genderSkeins: skeinConfig.genderSkeins,
       skeinsPerItem: skeinConfig.skeins,
       quantity: requested.quantity,
       yarnName: 'I Love This Yarn!',
@@ -184,11 +228,11 @@ export async function onRequestPost({ request, env }) {
     params.set(`${yarnPrefix}[price_data][currency]`, currency);
     params.set(`${yarnPrefix}[price_data][unit_amount]`, String(yarnUnitAmount));
     params.set(`${yarnPrefix}[price_data][product_data][name]`, `${line.yarnName} — ${line.colorwayName}`);
-    params.set(`${yarnPrefix}[price_data][product_data][description]`, `Yarn for ${line.name} • ${line.skeinsPerItem} skein(s) per item • ${line.fit} fit`.slice(0, 500));
+    params.set(`${yarnPrefix}[price_data][product_data][description]`, `Yarn for ${line.name} • ${line.sizeSkeins} size + ${line.genderSkeins} gender = ${line.skeinsPerItem} skein(s) per item • ${line.fit} fit`.slice(0, 500));
     const yarnImage = safeStripeImage(line.yarnImage);
     if (yarnImage) params.set(`${yarnPrefix}[price_data][product_data][images][0]`, yarnImage);
 
-    params.set(`metadata[line_${cartIndex + 1}]`, `${line.name} | ${line.size} | ${line.fit} | ${line.skeinsPerItem} skeins | ${line.colorwayName}`.slice(0, 500));
+    params.set(`metadata[line_${cartIndex + 1}]`, `${line.name} | ${line.size} | ${line.fit} | ${line.sizeSkeins}+${line.genderSkeins}=${line.skeinsPerItem} skeins | ${line.colorwayName}`.slice(0, 500));
   });
 
   let stripeResponse;

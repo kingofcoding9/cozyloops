@@ -621,37 +621,67 @@
             }
         }
 
-        function positiveSheetNumber(value) {
+        function nonNegativeSheetNumber(value) {
+            if (value === '' || value == null) return null;
             const number = Number(value);
-            return Number.isFinite(number) && number > 0 ? number : null;
+            return Number.isFinite(number) && number >= 0 ? number : null;
+        }
+
+        function positiveSheetNumber(value) {
+            const number = nonNegativeSheetNumber(value);
+            return number != null && number > 0 ? number : null;
+        }
+
+        const SIZE_SKEIN_COLUMNS = {
+            XS: 'XS Skein Count',
+            S: 'S Skein Count',
+            M: 'M Skein Count',
+            L: 'L Skein Count',
+            XL: 'XL Skein Count',
+            '2X': '2X Skein Count'
+        };
+
+        function parseAvailableSizes(value) {
+            const raw = String(value || '').trim();
+            if (!raw) return null;
+            const allowed = raw.split(',')
+                .map(size => size.trim().toUpperCase())
+                .filter(size => Object.prototype.hasOwnProperty.call(SIZE_SKEIN_COLUMNS, size));
+            return new Set(allowed);
         }
 
         function getProductYarnConfig(product) {
-            const general = positiveSheetNumber(product['Yarn Skein Count']);
-            const female = positiveSheetNumber(product.Female);
-            const male = positiveSheetNumber(product.Male);
-            const hasFitCounts = female != null || male != null;
+            const generalFallback = positiveSheetNumber(product['Yarn Skein Count']);
+            const sizeSkeins = {};
+            Object.entries(SIZE_SKEIN_COLUMNS).forEach(([size, column]) => {
+                const explicit = positiveSheetNumber(product[column]);
+                sizeSkeins[size] = explicit ?? generalFallback;
+            });
 
-            if (hasFitCounts) {
-                return {
-                    configured: true,
-                    mode: 'fit',
-                    options: [
-                        ...(female != null ? [{ fit: 'Female', skeins: female }] : []),
-                        ...(male != null ? [{ fit: 'Male', skeins: male }] : [])
-                    ]
-                };
-            }
-            if (general != null) {
-                return { configured: true, mode: 'standard', options: [{ fit: 'Standard', skeins: general }] };
-            }
-            return { configured: false, mode: 'none', options: [] };
+            const femaleAdjustment = nonNegativeSheetNumber(product.Female);
+            const maleAdjustment = nonNegativeSheetNumber(product.Male);
+            const hasGenderAdjustments = femaleAdjustment != null || maleAdjustment != null;
+            const genderOptions = hasGenderAdjustments
+                ? [
+                    ...(femaleAdjustment != null ? [{ fit: 'Female', genderSkeins: femaleAdjustment, allowedSizes: parseAvailableSizes(product['Female Sizes Available']) }] : []),
+                    ...(maleAdjustment != null ? [{ fit: 'Male', genderSkeins: maleAdjustment, allowedSizes: parseAvailableSizes(product['Male Sizes Available']) }] : [])
+                ]
+                : [{ fit: 'Standard', genderSkeins: 0, allowedSizes: null }];
+
+            const hasAnySize = Object.values(sizeSkeins).some(value => value != null);
+            return {
+                configured: hasAnySize && genderOptions.length > 0,
+                sizeSkeins,
+                genderOptions,
+                hasGenderAdjustments,
+                usesGeneralFallback: generalFallback != null,
+            };
         }
 
-        function configuredUnitTotal(basePrice, skeins) {
+        function configuredUnitTotal(basePrice, totalSkeins) {
             const yarnPrice = Number(yarnOptions?.yarnPrice);
-            if (!Number.isFinite(yarnPrice) || !Number.isFinite(Number(skeins))) return null;
-            return Number(basePrice) + (Number(skeins) * yarnPrice);
+            if (!Number.isFinite(yarnPrice) || !Number.isFinite(Number(totalSkeins))) return null;
+            return Number(basePrice) + (Number(totalSkeins) * yarnPrice);
         }
 
         function createProductCard(product) {
@@ -676,9 +706,9 @@
             const description = product.Description || product.description || 'No description available.';
             const yarnConfig = getProductYarnConfig(product);
             const yarnPrice = Number(yarnOptions?.yarnPrice);
-            const fitOptionsHtml = yarnConfig.mode === 'fit'
-                ? `<option value="">Choose fit</option>${yarnConfig.options.map(option => `<option value="${option.fit}" data-skeins="${option.skeins}">${option.fit} — ${option.skeins} skein${option.skeins === 1 ? '' : 's'}</option>`).join('')}`
-                : `<option value="Standard" data-skeins="${yarnConfig.options[0]?.skeins || ''}">Standard — ${yarnConfig.options[0]?.skeins || 0} skein${yarnConfig.options[0]?.skeins === 1 ? '' : 's'}</option>`;
+            const fitOptionsHtml = yarnConfig.hasGenderAdjustments
+                ? `<option value="">Choose fit</option>${yarnConfig.genderOptions.map(option => `<option value="${option.fit}" data-gender-skeins="${option.genderSkeins}" data-allowed-sizes="${option.allowedSizes ? [...option.allowedSizes].join(',') : '*'}">${option.fit} — +${option.genderSkeins} skein${option.genderSkeins === 1 ? '' : 's'}</option>`).join('')}`
+                : `<option value="Standard" data-gender-skeins="0" data-allowed-sizes="*">Standard — +0 skeins</option>`;
             
             // Format Tags
             let tagsHtml = '';
@@ -703,23 +733,22 @@
                             <label class="block text-sm font-medium text-theme-light">
                                 Size
                                 <select data-size-select class="mt-1 w-full bg-theme-dark border border-theme-darkblue/40 rounded-lg py-2 px-3 text-theme-light focus:outline-none focus:border-theme-purple">
-                                    <option value="XS">Extra Small (XS)</option>
-                                    <option value="S">Small (S)</option>
-                                    <option value="M" selected>Medium (M)</option>
-                                    <option value="L">Large (L)</option>
-                                    <option value="XL">Extra Large (XL)</option>
-                                    <option value="2X">2X</option>
+                                    ${['XS','S','M','L','XL','2X'].map(size => {
+                                        const skeins = yarnConfig.sizeSkeins[size];
+                                        const labels = { XS:'Extra Small (XS)', S:'Small (S)', M:'Medium (M)', L:'Large (L)', XL:'Extra Large (XL)', '2X':'2X' };
+                                        return `<option value="${size}" data-size-skeins="${skeins ?? ''}" ${size === 'M' ? 'selected' : ''} ${skeins == null ? 'disabled' : ''}>${labels[size]}${skeins != null ? ` — ${skeins} size skein${skeins === 1 ? '' : 's'}` : ' — not configured'}</option>`;
+                                    }).join('')}
                                 </select>
                             </label>
                             ${yarnConfig.configured ? `
                                 <label class="block text-sm font-medium text-theme-light">
-                                    ${yarnConfig.mode === 'fit' ? 'Fit' : 'Yarn requirement'}
-                                    <select data-fit-select class="mt-1 w-full bg-theme-dark border border-theme-darkblue/40 rounded-lg py-2 px-3 text-theme-light focus:outline-none focus:border-theme-purple" ${yarnConfig.mode === 'standard' ? 'disabled' : ''}>
+                                    ${yarnConfig.hasGenderAdjustments ? 'Fit' : 'Gender adjustment'}
+                                    <select data-fit-select class="mt-1 w-full bg-theme-dark border border-theme-darkblue/40 rounded-lg py-2 px-3 text-theme-light focus:outline-none focus:border-theme-purple" ${yarnConfig.hasGenderAdjustments ? '' : 'disabled'}>
                                         ${fitOptionsHtml}
                                     </select>
                                 </label>
                                 <div data-price-preview class="text-sm rounded-lg bg-theme-dark border border-theme-darkblue/30 px-3 py-2 text-theme-gray">
-                                    ${yarnConfig.mode === 'standard' ? `${yarnConfig.options[0].skeins} skein${yarnConfig.options[0].skeins === 1 ? '' : 's'} required` : 'Choose a fit to calculate yarn cost'}
+                                    Choose a size${yarnConfig.hasGenderAdjustments ? ' and fit' : ''} to calculate yarn cost
                                 </div>`
                                 : `<div class="text-sm rounded-lg bg-red-50 border border-red-300 px-3 py-2 text-red-800">Yarn quantity is not configured for this product in the Google Sheet.</div>`}
                             <div class="rounded-lg border border-theme-darkblue/30 bg-theme-dark p-3 space-y-2">
@@ -730,12 +759,16 @@
                                     </div>
                                     <button type="button" data-yarn-view class="hidden shrink-0 text-theme-blue hover:text-theme-purple text-sm underline">View yarn</button>
                                 </div>
-                                <label class="block text-sm font-medium text-theme-light">
-                                    Color
-                                    <select data-colorway-select class="mt-1 w-full bg-theme-black border border-theme-darkblue/40 rounded-lg py-2 px-3 text-theme-light focus:outline-none focus:border-theme-purple" ${yarnOptions ? '' : 'disabled'}>
-                                        <option value="">${yarnOptions ? 'Choose a color' : (yarnOptionsError ? 'Colors unavailable' : 'Loading colors…')}</option>
-                                    </select>
-                                </label>
+                                <div class="block text-sm font-medium text-theme-light">
+                                    <div class="flex items-center justify-between gap-2 mb-2">
+                                        <span>Color</span>
+                                        <span class="text-xs font-normal text-theme-gray">Tap a picture to select</span>
+                                    </div>
+                                    <input type="hidden" data-colorway-select value="">
+                                    <div data-colorway-grid class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-80 overflow-y-auto pr-1" role="listbox" aria-label="Yarn colors">
+                                        ${yarnOptions ? '' : `<div class="col-span-full text-sm text-theme-gray py-3">${yarnOptionsError ? 'Colors unavailable' : 'Loading colors…'}</div>`}
+                                    </div>
+                                </div>
                                 <button type="button" data-color-preview class="hidden w-full items-center gap-3 text-left rounded-lg border border-theme-darkblue/30 bg-theme-black p-2 hover:border-theme-purple transition-colors">
                                     <img data-color-image src="" alt="" class="w-14 h-14 rounded-md object-cover bg-theme-dark">
                                     <span class="min-w-0">
@@ -756,57 +789,92 @@
                 </div>
             `;
 
+            const sizeSelect = card.querySelector('[data-size-select]');
             const fitSelect = card.querySelector('[data-fit-select]');
             const pricePreview = card.querySelector('[data-price-preview]');
 
+            const syncFitAvailability = () => {
+                if (!sizeSelect || !fitSelect) return;
+                const size = sizeSelect.value;
+                [...fitSelect.options].forEach(option => {
+                    if (!option.value) return;
+                    const allowed = option.dataset.allowedSizes || '*';
+                    option.disabled = allowed !== '*' && !allowed.split(',').includes(size);
+                });
+                if (fitSelect.selectedOptions[0]?.disabled) fitSelect.value = '';
+            };
+
             const updatePricePreview = () => {
-                if (!fitSelect || !pricePreview) return;
+                if (!sizeSelect || !fitSelect || !pricePreview) return;
+                syncFitAvailability();
+                const selectedSize = sizeSelect.options[sizeSelect.selectedIndex];
                 const selectedFit = fitSelect.options[fitSelect.selectedIndex];
-                const skeins = Number(selectedFit?.dataset?.skeins);
-                const total = configuredUnitTotal(price, skeins);
-                if (!selectedFit?.value || !Number.isFinite(skeins) || total == null) {
-                    pricePreview.textContent = 'Choose a fit to calculate yarn cost';
+                const sizeSkeins = Number(selectedSize?.dataset?.sizeSkeins);
+                const genderSkeins = Number(selectedFit?.dataset?.genderSkeins);
+                if (!selectedSize?.value || !selectedFit?.value || !Number.isFinite(sizeSkeins) || !Number.isFinite(genderSkeins)) {
+                    pricePreview.textContent = `Choose a size${yarnConfig.hasGenderAdjustments ? ' and fit' : ''} to calculate yarn cost`;
                     return;
                 }
-                const yarnCost = skeins * Number(yarnOptions.yarnPrice);
-                pricePreview.innerHTML = `${skeins} skein${skeins === 1 ? '' : 's'} × $${Number(yarnOptions.yarnPrice).toFixed(2)} yarn = $${yarnCost.toFixed(2)}<br><strong class="text-theme-purple">Estimated item total: $${total.toFixed(2)}</strong>`;
+                const totalSkeins = sizeSkeins + genderSkeins;
+                const total = configuredUnitTotal(price, totalSkeins);
+                if (total == null) return;
+                const yarnCost = totalSkeins * Number(yarnOptions.yarnPrice);
+                pricePreview.innerHTML = `${sizeSkeins} size + ${genderSkeins} gender = <strong>${totalSkeins} skein${totalSkeins === 1 ? '' : 's'}</strong><br>${totalSkeins} × $${Number(yarnOptions.yarnPrice).toFixed(2)} yarn = $${yarnCost.toFixed(2)}<br><strong class="text-theme-purple">Estimated item total: $${total.toFixed(2)}</strong>`;
             };
-            if (fitSelect) {
-                fitSelect.addEventListener('change', updatePricePreview);
-                updatePricePreview();
-            }
+            if (sizeSelect) sizeSelect.addEventListener('change', updatePricePreview);
+            if (fitSelect) fitSelect.addEventListener('change', updatePricePreview);
+            syncFitAvailability();
+            updatePricePreview();
 
             const colorSelect = card.querySelector('[data-colorway-select]');
+            const colorGrid = card.querySelector('[data-colorway-grid]');
             const colorPreview = card.querySelector('[data-color-preview]');
             const colorImage = card.querySelector('[data-color-image]');
             const colorName = card.querySelector('[data-color-name]');
             const yarnView = card.querySelector('[data-yarn-view]');
+            let selectedColorway = null;
 
-            if (colorSelect && yarnOptions) {
-                yarnOptions.colorways.forEach(colorway => {
-                    const option = document.createElement('option');
-                    option.value = String(colorway.id);
-                    option.textContent = colorway.name;
-                    option.dataset.name = colorway.name;
-                    option.dataset.image = colorway.image || '';
-                    colorSelect.appendChild(option);
+            const applyColorSelection = (colorway, button) => {
+                selectedColorway = colorway;
+                colorSelect.value = String(colorway.id);
+                colorGrid.querySelectorAll('[data-colorway-card]').forEach(choice => {
+                    const active = choice === button;
+                    choice.setAttribute('aria-selected', active ? 'true' : 'false');
+                    choice.classList.toggle('border-theme-purple', active);
+                    choice.classList.toggle('ring-2', active);
+                    choice.classList.toggle('ring-theme-purple/40', active);
+                    choice.classList.toggle('border-theme-darkblue/30', !active);
                 });
-                colorSelect.disabled = false;
-                colorSelect.addEventListener('change', () => {
-                    const selected = colorSelect.options[colorSelect.selectedIndex];
-                    const selectedName = selected?.dataset?.name || '';
-                    const selectedImage = selected?.dataset?.image || '';
-                    colorName.textContent = selectedName;
-                    if (selectedName && selectedImage) {
-                        colorImage.src = selectedImage;
-                        colorImage.alt = `${selectedName} I Love This Yarn!`;
-                        colorPreview.classList.remove('hidden');
-                        colorPreview.classList.add('flex');
-                        colorPreview.onclick = () => openImageViewer(selectedImage, `${selectedName} — I Love This Yarn!`);
-                    } else {
-                        colorPreview.classList.add('hidden');
-                        colorPreview.classList.remove('flex');
-                    }
+
+                colorName.textContent = colorway.name;
+                if (colorway.image) {
+                    colorImage.src = colorway.image;
+                    colorImage.alt = `${colorway.name} I Love This Yarn!`;
+                    colorPreview.classList.remove('hidden');
+                    colorPreview.classList.add('flex');
+                    colorPreview.onclick = () => openImageViewer(colorway.image, `${colorway.name} — I Love This Yarn!`);
+                } else {
+                    colorPreview.classList.add('hidden');
+                    colorPreview.classList.remove('flex');
+                }
+            };
+
+            if (colorGrid && yarnOptions) {
+                yarnOptions.colorways.forEach(colorway => {
+                    const choice = document.createElement('button');
+                    choice.type = 'button';
+                    choice.dataset.colorwayCard = 'true';
+                    choice.setAttribute('role', 'option');
+                    choice.setAttribute('aria-selected', 'false');
+                    choice.className = 'min-w-0 rounded-lg border border-theme-darkblue/30 bg-theme-black p-2 text-left hover:border-theme-purple focus:outline-none focus:ring-2 focus:ring-theme-purple/40 transition-all';
+
+                    const image = colorway.image
+                        ? `<img src="${colorway.image}" alt="${colorway.name} I Love This Yarn!" loading="lazy" class="w-full aspect-square rounded-md object-cover bg-theme-dark mb-2">`
+                        : `<div class="w-full aspect-square rounded-md bg-theme-dark mb-2 flex items-center justify-center text-theme-gray text-xs text-center px-2">No photo</div>`;
+
+                    choice.innerHTML = `${image}<span class="block text-xs sm:text-sm font-medium text-theme-light leading-tight break-words">${colorway.name}</span>`;
+                    choice.addEventListener('click', () => applyColorSelection(colorway, choice));
+                    colorGrid.appendChild(choice);
                 });
             }
 
@@ -820,26 +888,33 @@
             if (cartButton) {
                 cartButton.disabled = !yarnOptions || !yarnConfig.configured;
                 cartButton.addEventListener('click', () => {
-                    const size = card.querySelector('[data-size-select]').value;
+                    const selectedSize = sizeSelect?.options[sizeSelect.selectedIndex];
+                    const size = selectedSize?.value || '';
+                    const sizeSkeinCount = Number(selectedSize?.dataset?.sizeSkeins);
                     const selectedFit = fitSelect?.options[fitSelect.selectedIndex];
                     const fit = selectedFit?.value || '';
-                    const skeinCount = Number(selectedFit?.dataset?.skeins);
-                    if (!fit || !Number.isFinite(skeinCount) || skeinCount <= 0) {
-                        fitSelect?.focus();
-                        alert('Please choose a fit with a configured yarn quantity.');
+                    const genderSkeinCount = Number(selectedFit?.dataset?.genderSkeins);
+                    const skeinCount = sizeSkeinCount + genderSkeinCount;
+                    if (!size || !Number.isFinite(sizeSkeinCount) || sizeSkeinCount <= 0) {
+                        sizeSelect?.focus();
+                        alert('Please choose a size with a configured yarn quantity.');
                         return;
                     }
-                    const selected = colorSelect?.options[colorSelect.selectedIndex];
+                    if (!fit || !Number.isFinite(genderSkeinCount) || genderSkeinCount < 0) {
+                        fitSelect?.focus();
+                        alert('Please choose a fit with a configured gender yarn adjustment.');
+                        return;
+                    }
                     const colorwayId = colorSelect?.value || '';
-                    const colorwayName = selected?.dataset?.name || '';
-                    const colorwayImage = selected?.dataset?.image || '';
+                    const colorwayName = selectedColorway?.name || '';
+                    const colorwayImage = selectedColorway?.image || '';
                     if (!colorwayId || !colorwayName) {
-                        colorSelect?.focus();
+                        colorGrid?.querySelector('[data-colorway-card]')?.focus();
                         alert('Please choose a yarn color before adding this item to your cart.');
                         return;
                     }
                     addToCart({
-                        name, size, fit, skeinCount, basePrice: price, image: imgUrl,
+                        name, size, fit, sizeSkeinCount, genderSkeinCount, skeinCount, basePrice: price, image: imgUrl,
                         yarnId: 7343, yarnName: 'I Love This Yarn!',
                         colorwayId, colorwayName, colorwayImage
                     });
@@ -928,7 +1003,9 @@
                 const saved = JSON.parse(localStorage.getItem('cozyLoopsCart') || '[]');
                 return Array.isArray(saved) ? saved.filter(item =>
                     item && typeof item.name === 'string' && VALID_SIZES.includes(item.size) &&
-                    ['Female', 'Male', 'Standard'].includes(item.fit) && Number.isFinite(Number(item.skeinCount)) && Number(item.skeinCount) > 0 &&
+                    ['Female', 'Male', 'Standard'].includes(item.fit) && Number.isFinite(Number(item.sizeSkeinCount)) && Number(item.sizeSkeinCount) > 0 &&
+                    Number.isFinite(Number(item.genderSkeinCount)) && Number(item.genderSkeinCount) >= 0 &&
+                    Number.isFinite(Number(item.skeinCount)) && Number(item.skeinCount) > 0 &&
                     Number.isInteger(item.quantity) && item.quantity > 0 &&
                     Number(item.yarnId) === 7343 && typeof item.colorwayId === 'string' && item.colorwayId &&
                     typeof item.colorwayName === 'string' && item.colorwayName
@@ -953,6 +1030,8 @@
                     name: item.name,
                     size: item.size,
                     fit: item.fit,
+                    sizeSkeinCount: Number(item.sizeSkeinCount),
+                    genderSkeinCount: Number(item.genderSkeinCount),
                     skeinCount: Number(item.skeinCount),
                     quantity: 1,
                     basePrice: Number(item.basePrice),
@@ -1013,7 +1092,8 @@
                             <p class="text-sm text-theme-gray">Size: ${item.size}</p>
                             <p class="text-sm text-theme-gray">Fit: ${item.fit}</p>
                             <p class="text-sm text-theme-gray">Yarn: I Love This Yarn! — ${item.colorwayName || 'Not selected'}</p>
-                            <p class="text-sm text-theme-gray">${item.skeinCount} skein${Number(item.skeinCount) === 1 ? '' : 's'} × $${Number(yarnOptions?.yarnPrice || 0).toFixed(2)} = $${yarnCost.toFixed(2)}</p>
+                            <p class="text-sm text-theme-gray">${item.sizeSkeinCount} size + ${item.genderSkeinCount} gender = ${item.skeinCount} skein${Number(item.skeinCount) === 1 ? '' : 's'}</p>
+                            <p class="text-sm text-theme-gray">${item.skeinCount} × $${Number(yarnOptions?.yarnPrice || 0).toFixed(2)} = $${yarnCost.toFixed(2)}</p>
                             <p class="text-sm font-semibold text-theme-purple">$${unitPrice.toFixed(2)} each including yarn</p>
                             <div class="mt-2 inline-flex items-center border border-theme-darkblue/30 rounded-lg overflow-hidden">
                                 <button type="button" onclick="changeCartQuantity(${index}, -1)" class="px-3 py-1 hover:bg-theme-black" aria-label="Decrease quantity">−</button>
