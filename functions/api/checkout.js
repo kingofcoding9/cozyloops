@@ -182,7 +182,7 @@ export async function onRequestPost({ request, env }) {
   let ravelryOptions;
   try {
     [catalog, ravelryOptions] = await Promise.all([
-      getCatalog(),
+      getCatalog(env),
       getILoveThisYarnOptions(env),
     ]);
   } catch (error) {

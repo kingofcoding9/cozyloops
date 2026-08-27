@@ -1,3 +1,5 @@
+# Google Apps Script catalog/contact endpoint (set as a Cloudflare secret in production)
+APPS_SHEET_URL=https://script.google.com/macros/s/replace_me/exec
 # Copy to .dev.vars for local Wrangler development only. Never commit real secrets.
 STRIPE_SECRET_KEY=sk_test_replace_me
 STRIPE_WEBHOOK_SECRET=whsec_replace_me

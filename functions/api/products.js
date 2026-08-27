@@ -10,9 +10,9 @@ function json(data, status = 200) {
   });
 }
 
-export async function onRequestGet() {
+export async function onRequestGet({ env }) {
   try {
-    const products = await getCatalog();
+    const products = await getCatalog(env);
     return json(products);
   } catch (error) {
     console.error('Catalog fetch failed:', error);

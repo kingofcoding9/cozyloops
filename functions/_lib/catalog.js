@@ -1,7 +1,14 @@
-export const CATALOG_URL = 'https://script.google.com/macros/s/AKfycbxWE4cI0YVrKIKc-oaqZ-PkblpjuyJDUEMpQyu4E1S0aUgH4Lb1KWkizoXnaMMe1URY8w/exec';
+function catalogUrl(env) {
+  const value = String(env?.APPS_SHEET_URL || '').trim();
+  if (!value) throw new Error('APPS_SHEET_URL is not configured');
+  let parsed;
+  try { parsed = new URL(value); } catch { throw new Error('APPS_SHEET_URL is invalid'); }
+  if (parsed.protocol !== 'https:') throw new Error('APPS_SHEET_URL must use HTTPS');
+  return parsed.href;
+}
 
-export async function getCatalog() {
-  const response = await fetch(CATALOG_URL, {
+export async function getCatalog(env) {
+  const response = await fetch(catalogUrl(env), {
     headers: { 'Accept': 'application/json' },
     cf: { cacheTtl: 60, cacheEverything: true },
   });
@@ -18,8 +25,8 @@ export async function getCatalog() {
   return products;
 }
 
-export async function getTrustedProduct(productName) {
-  const products = await getCatalog();
+export async function getTrustedProduct(productName, env) {
+  const products = await getCatalog(env);
   const wanted = String(productName || '').trim().toLowerCase();
   const matches = products.filter((product) =>
     String(product?.Name || '').trim().toLowerCase() === wanted

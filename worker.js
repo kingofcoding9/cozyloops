@@ -7,6 +7,8 @@ import { onRequestGet as getProducts } from './functions/api/products.js';
 import { onRequestGet as getYarnOptions } from './functions/api/yarn-options.js';
 import { onRequestGet as getYarnImage } from './functions/api/yarn-image.js';
 import { onRequestPost as submitCustomRequest } from './functions/api/custom-request.js';
+import { onRequestPost as submitContact } from './functions/api/contact.js';
+import { onRequestGet as getProductImage } from './functions/api/product-image.js';
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -38,6 +40,18 @@ export default {
         return json({ error: 'Method not allowed.' }, 405);
       }
       return getProducts({ request, env, ctx });
+    }
+    if (url.pathname === '/api/product-image') {
+      if (request.method !== 'GET') {
+        return json({ error: 'Method not allowed.' }, 405);
+      }
+      return getProductImage({ request, env, ctx });
+    }
+    if (url.pathname === '/api/contact') {
+      if (request.method !== 'POST') {
+        return json({ error: 'Method not allowed.' }, 405);
+      }
+      return submitContact({ request, env, ctx });
     }
     if (url.pathname === '/api/custom-request') {
       if (request.method !== 'POST') {

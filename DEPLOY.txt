@@ -1,9 +1,16 @@
 Cozy Loops website deployment package
 
-Contents in this folder are the website/Cloudflare Worker files needed for deployment.
+This folder contains only the website/Cloudflare Worker deployment files.
+The Windows EXE and Android APK are not included or modified.
+
+Required Cloudflare secret:
+  APPS_SHEET_URL
+
+APPS_SHEET_URL must contain the deployed Google Apps Script /exec endpoint.
+The URL is intentionally not embedded in browser or Worker source.
 
 Deploy from this folder with:
   npm install
   npx wrangler deploy
 
-Cloudflare secrets are NOT included in this folder. They remain configured in Cloudflare and/or must be set with Wrangler as needed.
+Other existing Cloudflare secrets/bindings (Stripe, Ravelry, email, etc.) remain configured in Cloudflare and are not copied into this folder.
