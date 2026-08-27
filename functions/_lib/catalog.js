@@ -1,4 +1,4 @@
-export const CATALOG_URL = 'https://script.google.com/macros/s/AKfycbzIO6Cwz-cxCDBpFMPrD3r6yTSDIU9W80jPxN6Fa0FeeMWWg8fZ2blLhPiAyKJNwQ4r4g/exec';
+export const CATALOG_URL = 'https://script.google.com/macros/s/AKfycbxWE4cI0YVrKIKc-oaqZ-PkblpjuyJDUEMpQyu4E1S0aUgH4Lb1KWkizoXnaMMe1URY8w/exec';
 
 export async function getCatalog() {
   const response = await fetch(CATALOG_URL, {

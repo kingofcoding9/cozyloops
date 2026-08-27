@@ -1,0 +1,9 @@
+Cozy Loops website deployment package
+
+Contents in this folder are the website/Cloudflare Worker files needed for deployment.
+
+Deploy from this folder with:
+  npm install
+  npx wrangler deploy
+
+Cloudflare secrets are NOT included in this folder. They remain configured in Cloudflare and/or must be set with Wrangler as needed.

@@ -125,6 +125,59 @@
             box-shadow: 0 10px 25px -5px rgba(79, 133, 136, 0.24); /* teal yarn shadow */
         }
         
+        /* Product mockup recoloring. The photo stays as the luminance/texture layer,
+           while a color blend layer changes only its hue/saturation. Pure-white
+           mockup backgrounds remain white because their luminosity is preserved. */
+        .product-mockup {
+            position: relative;
+            isolation: isolate;
+            background: #fff;
+        }
+
+        .product-mockup img {
+            position: relative;
+            z-index: 0;
+        }
+
+        .product-mockup-tint {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+            background: var(--mockup-yarn-color, transparent);
+            mix-blend-mode: color;
+            opacity: 0;
+            transition: background-color 180ms ease, opacity 180ms ease;
+        }
+
+        .product-mockup.has-yarn-color .product-mockup-tint {
+            opacity: 1;
+        }
+
+        .product-mockup-status {
+            position: absolute;
+            right: 0.5rem;
+            bottom: 0.5rem;
+            z-index: 2;
+            max-width: calc(100% - 1rem);
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            background: rgba(255,255,255,0.9);
+            color: #3b2418;
+            font-size: 0.6875rem;
+            font-weight: 600;
+            line-height: 1.1;
+            box-shadow: 0 1px 4px rgba(59,36,24,0.16);
+            opacity: 0;
+            transform: translateY(2px);
+            transition: opacity 180ms ease, transform 180ms ease;
+        }
+
+        .product-mockup.has-yarn-color .product-mockup-status {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
         /* Loading Spinner */
         .loader {
             border: 4px solid rgba(155, 105, 40, 0.18);
@@ -569,7 +622,7 @@
         document.getElementById('year').textContent = new Date().getFullYear();
 
         // --- State Management ---
-        const CONTACT_FORM_URL = 'https://script.google.com/macros/s/AKfycbzIO6Cwz-cxCDBpFMPrD3r6yTSDIU9W80jPxN6Fa0FeeMWWg8fZ2blLhPiAyKJNwQ4r4g/exec';
+        const CONTACT_FORM_URL = 'https://script.google.com/macros/s/AKfycbxWE4cI0YVrKIKc-oaqZ-PkblpjuyJDUEMpQyu4E1S0aUgH4Lb1KWkizoXnaMMe1URY8w/exec';
 
         let allProducts = [];
         let categories = {}; // Groups products by Type
@@ -925,6 +978,123 @@
             return Number(basePrice) + (Number(totalSkeins) * yarnPrice);
         }
 
+        const yarnColorCache = new Map();
+
+        function yarnImageProxyUrl(colorway) {
+            if (!colorway?.id || !colorway?.image) return '';
+            const params = new URLSearchParams({ colorway: String(colorway.id) });
+            return `/api/yarn-image?${params}`;
+        }
+
+        function rgbToCss({ r, g, b }) {
+            return `rgb(${Math.round(r)} ${Math.round(g)} ${Math.round(b)})`;
+        }
+
+        function rgbToHsl(r, g, b) {
+            r /= 255; g /= 255; b /= 255;
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            const l = (max + min) / 2;
+            if (max === min) return { h: 0, s: 0, l };
+            const d = max - min;
+            const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            let h;
+            switch (max) {
+                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                case g: h = (b - r) / d + 2; break;
+                default: h = (r - g) / d + 4;
+            }
+            return { h: h / 6, s, l };
+        }
+
+        function representativeYarnColor(image) {
+            const canvas = document.createElement('canvas');
+            const size = 72;
+            canvas.width = size;
+            canvas.height = size;
+            const context = canvas.getContext('2d', { willReadFrequently: true });
+            context.drawImage(image, 0, 0, size, size);
+            const pixels = context.getImageData(0, 0, size, size).data;
+            const buckets = new Map();
+            const neutral = [];
+            for (let i = 0; i < pixels.length; i += 4) {
+                if (pixels[i + 3] < 220) continue;
+                const r = pixels[i], g = pixels[i + 1], b = pixels[i + 2];
+                const max = Math.max(r, g, b);
+                const min = Math.min(r, g, b);
+                const range = max - min;
+                const luma = (0.2126 * r) + (0.7152 * g) + (0.0722 * b);
+                if ((luma > 238 && range < 24) || luma < 18) continue;
+                const hsl = rgbToHsl(r, g, b);
+                const sample = { r, g, b, ...hsl };
+                if (hsl.s < 0.08) {
+                    neutral.push(sample);
+                    continue;
+                }
+                const hBin = Math.floor(hsl.h * 18) % 18;
+                const sBin = Math.min(3, Math.floor(hsl.s * 4));
+                const lBin = Math.min(3, Math.floor(hsl.l * 4));
+                const key = `${hBin}:${sBin}:${lBin}`;
+                let bucket = buckets.get(key);
+                if (!bucket) buckets.set(key, bucket = { weight: 0, r: 0, g: 0, b: 0 });
+                const midtone = 1 - Math.min(1, Math.abs(hsl.l - 0.55) * 1.4);
+                const weight = 0.35 + hsl.s * 1.6 + midtone * 0.5;
+                bucket.weight += weight;
+                bucket.r += r * weight;
+                bucket.g += g * weight;
+                bucket.b += b * weight;
+            }
+            let best = null;
+            for (const bucket of buckets.values()) {
+                if (!best || bucket.weight > best.weight) best = bucket;
+            }
+            if (best) return { r: best.r / best.weight, g: best.g / best.weight, b: best.b / best.weight };
+            if (neutral.length) {
+                neutral.sort((a, b) => a.l - b.l);
+                const middle = neutral[Math.floor(neutral.length / 2)];
+                return { r: middle.r, g: middle.g, b: middle.b };
+            }
+            return null;
+        }
+
+        async function getYarnPreviewColor(colorway) {
+            const key = String(colorway?.id || '');
+            if (!key || !colorway?.image) return null;
+            if (yarnColorCache.has(key)) return yarnColorCache.get(key);
+            const pending = new Promise((resolve) => {
+                const image = new Image();
+                image.onload = () => {
+                    try { resolve(representativeYarnColor(image)); }
+                    catch (error) {
+                        console.warn('Could not sample yarn color:', error);
+                        resolve(null);
+                    }
+                };
+                image.onerror = () => resolve(null);
+                image.src = yarnImageProxyUrl(colorway);
+            });
+            yarnColorCache.set(key, pending);
+            return pending;
+        }
+
+        async function updateProductMockupColor(card, colorway) {
+            const mockup = card.querySelector('[data-product-mockup]');
+            const status = card.querySelector('[data-product-mockup-status]');
+            if (!mockup || !colorway?.image) return;
+            const selectionKey = String(colorway.id);
+            mockup.dataset.pendingColorway = selectionKey;
+            if (status) status.textContent = `Previewing ${colorway.name}`;
+            const color = await getYarnPreviewColor(colorway);
+            if (mockup.dataset.pendingColorway !== selectionKey) return;
+            if (!color) {
+                mockup.classList.remove('has-yarn-color');
+                mockup.style.removeProperty('--mockup-yarn-color');
+                return;
+            }
+            mockup.style.setProperty('--mockup-yarn-color', rgbToCss(color));
+            mockup.classList.add('has-yarn-color');
+        }
+
         function createProductCard(product) {
             const card = document.createElement('div');
             card.className = 'product-card relative bg-theme-black border border-theme-darkblue/30 rounded-lg overflow-visible flex flex-col h-full';
@@ -977,8 +1147,10 @@
             }
 
             card.innerHTML = `
-                <div class="h-48 w-full overflow-hidden rounded-t-lg bg-theme-dark">
-                    <img src="${imgUrl}" alt="${name}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x300/f2e5c8/d9653c?text=Image+Not+Found'">
+                <div data-product-mockup class="product-mockup h-48 w-full overflow-hidden rounded-t-lg">
+                    <img src="${imgUrl}" alt="${name}" class="w-full h-full object-cover" onerror="this.closest('[data-product-mockup]')?.classList.remove('has-yarn-color'); this.src='https://placehold.co/400x300/f2e5c8/d9653c?text=Image+Not+Found'">
+                    <span data-product-mockup-tint class="product-mockup-tint" aria-hidden="true"></span>
+                    <span data-product-mockup-status class="product-mockup-status">Yarn color preview</span>
                 </div>
                 <div class="p-4 flex flex-col flex-grow">
                     <h4 class="text-lg font-bold text-theme-light mb-1">${name}</h4>
@@ -1120,6 +1292,7 @@
                 } else {
                     colorToggleImage.classList.add('hidden');
                 }
+                updateProductMockupColor(card, colorway);
                 setColorMenuOpen(false);
             };
 
