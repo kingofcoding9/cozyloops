@@ -139,6 +139,19 @@
             z-index: 0;
         }
 
+        .product-mockup-canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+            display: none;
+        }
+
+        .product-mockup.has-yarn-color .product-mockup-canvas { display: block; }
+        .product-mockup.has-yarn-color > img { visibility: hidden; }
+
         .product-mockup-tint {
             position: absolute;
             inset: 0;
@@ -151,7 +164,7 @@
         }
 
         .product-mockup.has-yarn-color .product-mockup-tint {
-            opacity: 1;
+            opacity: 0;
         }
 
         .product-mockup-status {
@@ -1005,7 +1018,43 @@
             return { h: h / 6, s, l };
         }
 
-        function representativeYarnColor(image) {
+        function hslToRgb(h, s, l) {
+            h = ((h % 1) + 1) % 1;
+            if (s <= 0) { const v = l * 255; return { r: v, g: v, b: v }; }
+            const hue2rgb = (p, q, t) => {
+                if (t < 0) t += 1; if (t > 1) t -= 1;
+                if (t < 1/6) return p + (q - p) * 6 * t;
+                if (t < 1/2) return q;
+                if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                return p;
+            };
+            const q = l < .5 ? l * (1 + s) : l + s - l * s;
+            const p = 2 * l - q;
+            return { r: hue2rgb(p,q,h+1/3)*255, g: hue2rgb(p,q,h)*255, b: hue2rgb(p,q,h-1/3)*255 };
+        }
+
+        function colorNameHint(name) {
+            const n = String(name || '').toLowerCase();
+            const neutral = [
+                [/\bblack\b/, {h:0,s:0,l:.07}], [/graphite/, {h:0,s:.04,l:.24}],
+                [/graybeard|greybeard/, {h:.10,s:.05,l:.58}], [/gray mist/, {h:.10,s:.06,l:.72}],
+                [/antique white/, {h:.11,s:.18,l:.88}], [/\bwhite\b/, {h:0,s:0,l:.96}],
+                [/ivory/, {h:.12,s:.30,l:.90}], [/linen/, {h:.09,s:.25,l:.76}]
+            ];
+            for (const [re,v] of neutral) if (re.test(n)) return {...v, fixed:true};
+            const chroma = [
+                [/cranberry/, [350,.72,.34]], [/hot rose/, [335,.78,.56]], [/soft pink/, [345,.38,.78]], [/\bpink\b/, [345,.55,.72]],
+                [/\bred\b/, [2,.78,.43]], [/burnt pumpkin/, [24,.80,.43]], [/toasted almond/, [26,.38,.60]], [/\bbrown\b/, [25,.50,.27]],
+                [/sungold/, [42,.82,.55]], [/\byellow\b/, [49,.88,.58]], [/dark olive/, [72,.45,.27]], [/mid green/, [105,.43,.45]],
+                [/antique teal/, [175,.35,.35]], [/turquoise/, [184,.62,.48]], [/peacock/, [188,.82,.38]], [/sea blue/, [196,.48,.48]],
+                [/soft blue/, [207,.38,.72]], [/dark country blue/, [210,.45,.34]], [/navy/, [225,.60,.20]],
+                [/orchid/, [285,.38,.70]], [/amethyst/, [280,.45,.55]], [/\bpurple\b/, [290,.55,.26]], [/grape/, [265,.55,.34]]
+            ];
+            for (const [re,v] of chroma) if (re.test(n)) return {h:v[0]/360,s:v[1],l:v[2],fixed:false};
+            return null;
+        }
+
+        function representativeYarnColor(image, colorwayName) {
             const canvas = document.createElement('canvas');
             const size = 72;
             canvas.width = size;
@@ -1013,6 +1062,30 @@
             const context = canvas.getContext('2d', { willReadFrequently: true });
             context.drawImage(image, 0, 0, size, size);
             const pixels = context.getImageData(0, 0, size, size).data;
+            const hint = colorNameHint(colorwayName);
+            if (hint?.fixed) return hslToRgb(hint.h, hint.s, hint.l);
+            const guided = [];
+            if (hint) {
+                for (let i = 0; i < pixels.length; i += 4) {
+                    if (pixels[i + 3] < 220) continue;
+                    const r=pixels[i], g=pixels[i+1], b=pixels[i+2];
+                    const q=rgbToHsl(r,g,b);
+                    if (q.s < .16 || q.l < .06 || q.l > .94) continue;
+                    const hd = Math.min(Math.abs(q.h-hint.h), 1-Math.abs(q.h-hint.h));
+                    if (hd > .10) continue;
+                    const score = hd * 6 + Math.abs(q.l-hint.l) * .45 - q.s * .18;
+                    guided.push({score,r,g,b});
+                }
+                if (guided.length >= 8) {
+                    guided.sort((a,b)=>a.score-b.score);
+                    const take = guided.slice(0, Math.max(8, Math.ceil(guided.length*.18)));
+                    const avg = take.reduce((a,p)=>({r:a.r+p.r,g:a.g+p.g,b:a.b+p.b}),{r:0,g:0,b:0});
+                    const sampled = {r:avg.r/take.length,g:avg.g/take.length,b:avg.b/take.length};
+                    const sh=rgbToHsl(sampled.r,sampled.g,sampled.b);
+                    return hslToRgb(sh.h, Math.max(hint.s*.75, Math.min(.92, sh.s)), Math.max(.08, Math.min(.90, (sh.l+hint.l)/2)));
+                }
+                return hslToRgb(hint.h,hint.s,hint.l);
+            }
             const buckets = new Map();
             const neutral = [];
             for (let i = 0; i < pixels.length; i += 4) {
@@ -1062,7 +1135,7 @@
             const pending = new Promise((resolve) => {
                 const image = new Image();
                 image.onload = () => {
-                    try { resolve(representativeYarnColor(image)); }
+                    try { resolve(representativeYarnColor(image, colorway.name)); }
                     catch (error) {
                         console.warn('Could not sample yarn color:', error);
                         resolve(null);
@@ -1073,6 +1146,42 @@
             });
             yarnColorCache.set(key, pending);
             return pending;
+        }
+
+        async function renderRecoloredMockup(card, target) {
+            const image = card.querySelector('[data-product-mockup] > img');
+            const canvas = card.querySelector('[data-product-mockup-canvas]');
+            if (!image || !canvas || !target) return false;
+            if (!image.complete) await new Promise(resolve => image.addEventListener('load', resolve, {once:true}));
+            const sourceW = image.naturalWidth, sourceH = image.naturalHeight;
+            if (!sourceW || !sourceH) return false;
+            const ratio = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+            const w = Math.max(1, Math.round(image.clientWidth * ratio));
+            const h = Math.max(1, Math.round(image.clientHeight * ratio));
+            canvas.width=w; canvas.height=h;
+            const ctx=canvas.getContext('2d',{willReadFrequently:true});
+            const scale=Math.max(w/sourceW,h/sourceH);
+            const drawW=sourceW*scale, drawH=sourceH*scale;
+            ctx.drawImage(image,(w-drawW)/2,(h-drawH)/2,drawW,drawH);
+            const frame=ctx.getImageData(0,0,w,h), d=frame.data;
+            let sumL=0,count=0;
+            for(let i=0;i<d.length;i+=4){
+                const q=rgbToHsl(d[i],d[i+1],d[i+2]);
+                if(q.s>.10 && q.l<.97){sumL+=q.l;count++;}
+            }
+            const baseL=count?sumL/count:.58, th=rgbToHsl(target.r,target.g,target.b);
+            for(let i=0;i<d.length;i+=4){
+                const r=d[i],g=d[i+1],b=d[i+2], q=rgbToHsl(r,g,b);
+                const brightBackground=Math.min(r,g,b)>220;
+                if(brightBackground || q.s<=.10 || q.l>=.985) continue;
+                const texture=(q.l-baseL)*.72;
+                const nl=Math.max(.025,Math.min(.975,th.l+texture));
+                const ns=Math.max(0,Math.min(1,th.s*(.88+.12*q.s)));
+                const out=hslToRgb(th.h,ns,nl);
+                d[i]=out.r;d[i+1]=out.g;d[i+2]=out.b;
+            }
+            ctx.putImageData(frame,0,0);
+            return true;
         }
 
         async function updateProductMockupColor(card, colorway) {
@@ -1089,6 +1198,9 @@
                 mockup.style.removeProperty('--mockup-yarn-color');
                 return;
             }
+            const rendered = await renderRecoloredMockup(card, color);
+            if (mockup.dataset.pendingColorway !== selectionKey) return;
+            if (!rendered) return;
             mockup.style.setProperty('--mockup-yarn-color', rgbToCss(color));
             mockup.classList.add('has-yarn-color');
         }
@@ -1141,6 +1253,7 @@
             card.innerHTML = `
                 <div data-product-mockup class="product-mockup h-48 w-full overflow-hidden rounded-t-lg">
                     <img src="${imgUrl}" alt="${name}" class="w-full h-full object-cover" onerror="this.closest('[data-product-mockup]')?.classList.remove('has-yarn-color'); this.src='https://placehold.co/400x300/f2e5c8/d9653c?text=Image+Not+Found'">
+                    <canvas data-product-mockup-canvas class="product-mockup-canvas" aria-hidden="true"></canvas>
                     <span data-product-mockup-tint class="product-mockup-tint" aria-hidden="true"></span>
                     <span data-product-mockup-status class="product-mockup-status">Yarn color preview</span>
                 </div>
